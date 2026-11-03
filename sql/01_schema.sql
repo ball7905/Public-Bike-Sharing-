@@ -19,7 +19,9 @@ CREATE TABLE dim_date (
     is_working_day  BOOLEAN NOT NULL,
     day_type        VARCHAR(12) NOT NULL,          -- Working day / Weekend / Holiday
     season          SMALLINT NOT NULL CHECK (season BETWEEN 1 AND 4),
-    season_name     VARCHAR(10) NOT NULL
+    season_name     VARCHAR(10) NOT NULL,
+    hours_recorded  SMALLINT NOT NULL CHECK (hours_recorded BETWEEN 1 AND 24),  -- số giờ có bản ghi trong nguồn
+    is_complete_day BOOLEAN NOT NULL                -- hours_recorded = 24
 );
 
 -- Dim_Hour: 24 dòng
@@ -52,7 +54,7 @@ CREATE TABLE fact_rentals (
     windspeed_norm    NUMERIC(6,4) NOT NULL,
     temp_c            NUMERIC(5,2) NOT NULL,       -- temp * 41
     atemp_c           NUMERIC(5,2) NOT NULL,       -- atemp * 50
-    humidity_pct      NUMERIC(5,2) NOT NULL,       -- hum * 100
+    humidity_pct      NUMERIC(5,2),                -- hum * 100; NULL khi hum = 0 (lỗi cảm biến)
     windspeed_kmh     NUMERIC(5,2) NOT NULL,       -- windspeed * 67
     CONSTRAINT chk_total CHECK (total_cnt = casual_cnt + registered_cnt),
     UNIQUE (date_key, hour_key)

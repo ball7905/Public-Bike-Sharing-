@@ -49,12 +49,33 @@ def clean(hour: pd.DataFrame) -> pd.DataFrame:
     for col in ["temp", "atemp", "hum", "windspeed"]:
         if not df[col].between(0, 1).all():
             raise ValueError(f"{col} ngoài miền [0,1]")
+
+    # Các cột lịch phải khớp với dteday (ETL sinh dim_date từ dteday)
+    derived = {"yr": df["dteday"].dt.year - 2011, "mnth": df["dteday"].dt.month,
+               "weekday": (df["dteday"].dt.day_of_week + 1) % 7}
+    for col, expected in derived.items():
+        bad = df[col] != expected
+        if bad.any():
+            raise ValueError(f"{col} không khớp dteday: {int(bad.sum())} dòng")
+    # Thuộc tính cấp ngày phải giống nhau ở mọi giờ trong ngày (dim_date lấy 1 giá trị / ngày)
+    per_day = df.groupby("dteday")[["season", "holiday", "workingday"]].nunique()
+    if (per_day > 1).any().any():
+        raise ValueError("season/holiday/workingday không nhất quán trong cùng một ngày")
+
+    # Giá trị bất thường: giữ dòng (lượt thuê vẫn đúng), chỉ cảnh báo; xử lý khi quy đổi ở build_fact
+    n_hum0 = int((df["hum"] == 0).sum())
+    if n_hum0:
+        log.warning("%d dòng có hum = 0 (lỗi cảm biến) -> humidity_pct = NULL", n_hum0)
+    n_wind0 = int((df["windspeed"] == 0).sum())
+    if n_wind0:
+        log.info("%d dòng có windspeed = 0 (có thể là thiếu dữ liệu) -> giữ nguyên", n_wind0)
     return df.reset_index(drop=True)
 
 
 def build_dim_date(df: pd.DataFrame) -> pd.DataFrame:
     per_day = df.groupby("dteday").agg(season=("season", "first"), holiday=("holiday", "first"),
-                                       workingday=("workingday", "first")).reset_index()
+                                       workingday=("workingday", "first"),
+                                       hours_recorded=("hr", "size")).reset_index()
     cal = pd.DataFrame({"full_date": pd.date_range(df["dteday"].min(), df["dteday"].max())})
     d = cal.merge(per_day.rename(columns={"dteday": "full_date"}), on="full_date", how="left")
     if d[["season", "holiday", "workingday"]].isna().any().any():
@@ -67,12 +88,15 @@ def build_dim_date(df: pd.DataFrame) -> pd.DataFrame:
         "month": d["full_date"].dt.month,
         "month_name": d["full_date"].dt.month_name(),
         "day_of_month": d["full_date"].dt.day,
-        "weekday": (d["full_date"].dt.dayofweek + 1) % 7,   # 0 = Chủ nhật như nguồn
+        "weekday": (d["full_date"].dt.day_of_week + 1) % 7,   # 0 = Chủ nhật như nguồn
         "weekday_name": d["full_date"].dt.day_name(),
-        "is_weekend": d["full_date"].dt.dayofweek >= 5,
+        "is_weekend": d["full_date"].dt.day_of_week >= 5,
         "is_holiday": d["holiday"].astype(bool),
         "is_working_day": d["workingday"].astype(bool),
         "season": d["season"].astype(int),
+        # Số giờ có bản ghi; ngày thiếu giờ làm giảm "TB lượt thuê / ngày" nên cần đánh dấu
+        "hours_recorded": d["hours_recorded"].astype(int),
+        "is_complete_day": d["hours_recorded"] == 24,
     })
     out["season_name"] = out["season"].map(SEASON_NAMES)
     out["day_type"] = "Working day"
@@ -108,7 +132,8 @@ def build_fact(df: pd.DataFrame) -> pd.DataFrame:
         "windspeed_norm": df["windspeed"],
         "temp_c": (df["temp"] * TEMP_MAX).round(2),
         "atemp_c": (df["atemp"] * ATEMP_MAX).round(2),
-        "humidity_pct": (df["hum"] * HUM_MAX).round(2),
+        # hum = 0 là lỗi cảm biến (độ ẩm 0% không có thật) -> NULL; hum_norm vẫn giữ giá trị gốc
+        "humidity_pct": (df["hum"] * HUM_MAX).round(2).where(df["hum"] > 0),
         "windspeed_kmh": (df["windspeed"] * WIND_MAX).round(2),
     })
 

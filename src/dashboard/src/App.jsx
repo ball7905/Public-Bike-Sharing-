@@ -4,7 +4,8 @@ import FilterBar from './components/FilterBar.jsx'
 import KpiCards from './components/KpiCards.jsx'
 import DrillChart from './components/DrillChart.jsx'
 import PivotTable from './components/PivotTable.jsx'
-import { DayTypeChart, HourlyChart, UserChart, WeatherChart } from './components/Charts.jsx'
+import DssPanel from './components/DssPanel.jsx'
+import { ClimateChart, DayTypeChart, HourlyChart, UserChart, WeatherChart } from './components/Charts.jsx'
 
 export default function App() {
   const [options, setOptions] = useState({})
@@ -31,7 +32,9 @@ export default function App() {
         <DayTypeChart filters={filters} />
         <UserChart filters={filters} />
       </div>
+      <ClimateChart filters={filters} />
       <PivotTable filters={filters} />
+      <DssPanel filters={filters} />
     </main>
   )
 }

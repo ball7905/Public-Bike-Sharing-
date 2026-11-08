@@ -1,0 +1,76 @@
+% ==================== CHƯƠNG 1 ====================
+\chap{Tổng quan đề tài}
+
+\sect{Bối cảnh và đặt vấn đề}
+Hệ thống xe đạp công cộng cho phép người dân thuê xe tại một trạm và trả xe tại trạm khác. Đây là phương tiện giúp giảm ùn tắc giao thông, hạn chế ô nhiễm và bổ sung lựa chọn di chuyển linh hoạt trong đô thị. Đặc điểm nổi bật của dịch vụ là nhu cầu thay đổi liên tục theo:
+\begin{itemize}
+    \item \textbf{Thời gian}: giờ trong ngày (giờ đi làm, giờ tan tầm), ngày trong tuần, tháng, mùa;
+    \item \textbf{Loại ngày}: ngày làm việc, cuối tuần, ngày lễ;
+    \item \textbf{Điều kiện môi trường}: tình trạng thời tiết, nhiệt độ, độ ẩm, tốc độ gió;
+    \item \textbf{Nhóm người dùng}: người dùng đăng ký (registered) và người dùng vãng lai (casual).
+\end{itemize}
+Nếu không phân tích được các xu hướng này, đơn vị vận hành khó lập kế hoạch chuẩn bị xe và nhân sự phù hợp: thiếu xe vào giờ cao điểm làm giảm chất lượng dịch vụ, trong khi chuẩn bị dư thừa vào giờ thấp điểm gây lãng phí nguồn lực. Dữ liệu lịch sử thuê xe chứa sẵn thông tin để trả lời các câu hỏi này, nhưng cần được tích hợp, tổ chức lại và khai thác theo nhiều chiều. Đây chính là vai trò của một kho dữ liệu (Data Warehouse - DW) kết hợp với một hệ hỗ trợ quyết định (Decision Support System - DSS).
+
+\sect{Mục tiêu}
+Đề tài xây dựng hệ thống \textbf{Bike Sharing DW \& DSS} gồm kho dữ liệu đa chiều và thành phần hỗ trợ quyết định chuẩn bị xe. Bảng~\ref{tab:objectives} đối chiếu sáu mục tiêu của bài tập lớn (mục 1.1 của quy định) với phần việc tương ứng trong đề tài.
+
+\begin{table}[H]
+\centering
+\caption{Đối chiếu mục tiêu bài tập lớn với nội dung đề tài}
+\label{tab:objectives}
+\begin{tabularx}{\textwidth}{|c|p{4.6cm}|X|c|}
+\hline
+\textbf{\#} & \textbf{Mục tiêu của quy định} & \textbf{Thực hiện trong đề tài} & \textbf{Mục} \\ \hline
+1 & Phân tích yêu cầu nghiệp vụ, xác định bài toán & 13 câu hỏi nghiệp vụ trong 3 nhóm, 10 yêu cầu chức năng, 7 yêu cầu phi chức năng, 8 KPI & \ref{sec:requirements} \\ \hline
+2 & Thiết kế DW đa chiều và quy trình ETL & Star Schema 1 bảng sự kiện, 3 bảng chiều; ETL Python 4 bước có đối chiếu nguồn & \ref{sec:dwdesign}, \ref{sec:etl} \\ \hline
+3 & Hiện thực hệ thống hoàn chỉnh (backend, frontend) & PostgreSQL, truy vấn OLAP, REST API (FastAPI), dashboard React có bộ lọc dùng chung & \ref{sec:impl} \\ \hline
+4 & Phát triển thành phần DSS dựa trên DW & Phân loại nhu cầu theo ngưỡng phân vị, khuyến nghị, cảnh báo, phân tích độ nhạy & \ref{sec:dss} \\ \hline
+5 & Đánh giá, phân tích hạn chế, đề xuất phát triển & 33 kiểm thử tự động, 13 phép đối chiếu ETL, đo hiệu năng, đánh giá FR/NFR & \ref{sec:eval}, \ref{sec:limits} \\ \hline
+6 & Trình bày kết quả & Slide và thuyết trình/video (link ở trang bìa) & -- \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Phạm vi đề tài}
+Hệ thống tập trung vào các chức năng:
+\begin{enumerate}
+    \item Phân tích số lượt thuê xe theo giờ, ngày, tháng, năm và mùa.
+    \item So sánh nhu cầu giữa ngày làm việc, cuối tuần và ngày lễ.
+    \item Phân tích ảnh hưởng của thời tiết, nhiệt độ và độ ẩm tới nhu cầu.
+    \item Phân tích khác biệt giữa người dùng đăng ký và người dùng vãng lai.
+    \item Xác định các khung giờ có nhu cầu cao và thấp.
+    \item Phân loại mức nhu cầu và đề xuất mức độ chuẩn bị xe dựa trên dữ liệu lịch sử.
+\end{enumerate}
+
+\subsect{Giới hạn của đề tài}
+\begin{itemize}
+    \item Không triển khai đặt xe trực tuyến, quản lý tài khoản, theo dõi GPS hay điều phối xe theo thời gian thực.
+    \item Bộ dữ liệu không có vị trí trạm và số xe sẵn sàng, nên hệ thống chỉ phân tích nhu cầu ở phạm vi \textbf{toàn hệ thống} và chỉ khuyến nghị \textbf{mức độ} chuẩn bị, không tính số xe cụ thể cần điều chuyển giữa các trạm.
+    \item Dữ liệu thuộc giai đoạn 2011--2012 tại Washington, D.C.; kết quả mang tính minh họa phương pháp, cần nạp dữ liệu mới khi áp dụng thực tế.
+\end{itemize}
+
+\sect{Đối chiếu chuẩn đầu ra học phần}
+Bảng~\ref{tab:lo} chỉ ra nơi mỗi chuẩn đầu ra (theo đề cương DCMH.CO4031.6.1) được thể hiện trong báo cáo.
+
+\begin{table}[H]
+\centering
+\caption{Đối chiếu chuẩn đầu ra với nội dung báo cáo}
+\label{tab:lo}
+\begin{tabularx}{\textwidth}{|c|p{5.6cm}|X|}
+\hline
+\textbf{L.O.} & \textbf{Mô tả} & \textbf{Thể hiện trong báo cáo} \\ \hline
+1.1 & Giải thích khái niệm cơ bản về DW và DSS & Mục \ref{sec:theory-dw}, \ref{sec:theory-dss} \\ \hline
+1.2 & Mô tả vai trò của DW trong DSS & Mục \ref{sec:theory-role}; kiến trúc hệ thống mục \ref{sec:arch} \\ \hline
+1.3 & Nêu ví dụ thực tế về DW và DSS & Mục \ref{sec:theory-examples} \\ \hline
+2.1 & Mô tả quy trình và nguyên lý thiết kế DW & Mục \ref{sec:theory-design}, quy trình 4 bước của Kimball áp dụng ở mục \ref{sec:dwdesign} \\ \hline
+2.2 & Xác định các vấn đề liên quan đến thiết kế DW & Mục \ref{sec:design-issues} (độ hạt, giờ bị thiếu, thuộc tính chuẩn hóa, chiều thay đổi chậm, ...) \\ \hline
+2.3 & Thiết kế và hiện thực được hệ thống DW & Mục \ref{sec:dwdesign}, \ref{sec:etl}, \ref{sec:impl} \\ \hline
+3.1 & Khái niệm và đặc tính của MSS và DSS & Mục \ref{sec:theory-dss} \\ \hline
+3.2 & Các giai đoạn chính trong ra quyết định & Mục \ref{sec:theory-simon}; áp dụng cho bài toán ở mục \ref{sec:dss-simon} \\ \hline
+3.3 & Minh họa quá trình mô hình hóa trong DSS & Mục \ref{sec:theory-model}; mô hình của đề tài ở mục \ref{sec:dss-model} \\ \hline
+4.1 & Nguyên tắc phân tích, thiết kế DSS & Mục \ref{sec:theory-dss}, \ref{sec:dss-arch} \\ \hline
+4.2 & Phân tích, thiết kế, hiện thực một DSS đơn giản & Mục \ref{sec:dss} (toàn bộ) \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Cấu trúc báo cáo}
+Mục~\ref{sec:theory} trình bày cơ sở lý thuyết. Mục~\ref{sec:requirements} phân tích yêu cầu nghiệp vụ. Mục~\ref{sec:data} mô tả và đánh giá dữ liệu nguồn. Mục~\ref{sec:dwdesign} và~\ref{sec:etl} trình bày thiết kế kho dữ liệu và quy trình ETL. Mục~\ref{sec:impl} mô tả hiện thực backend, OLAP và dashboard. Mục~\ref{sec:dss} trình bày thành phần DSS. Mục~\ref{sec:results} trả lời các câu hỏi nghiệp vụ bằng kết quả phân tích. Mục~\ref{sec:eval} kiểm thử và đánh giá, mục~\ref{sec:limits} nêu hạn chế và hướng phát triển, mục~\ref{sec:setup} hướng dẫn cài đặt và mục~\ref{sec:conclusion} kết luận.

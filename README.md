@@ -1,7 +1,7 @@
 # Bike Sharing DW & DSS (CO4031 - HK261)
 
 Cấu trúc: `sql/` (schema, view, truy vấn OLAP) · `src/etl/` (ETL Python) · `src/api/` (FastAPI) ·
-`src/dashboard/` (React) · `tests/` · `data/` · `docs/`
+`src/dss/` (mô hình DSS) · `src/dashboard/` (React) · `tests/` · `data/` · `docs/`
 
 ## 1. Cài đặt (PowerShell)
 ```powershell
@@ -41,10 +41,27 @@ python -m pytest tests -q           # cần DB đã nạp ETL
 
 ## OLAP & KPI (FR05-FR08)
 - `sql/03_olap_queries.sql`: Roll-up (`ROLLUP`), Drill-down, Slice, Dice, Pivot, 8 KPI.
-- API: `/api/kpis`, `/api/olap/drill`, `/api/olap/pivot`, `/api/hourly`, `/api/weather`, `/api/day-type`, `/api/users`, `/api/filters`.
+- API: `/api/kpis`, `/api/olap/drill`, `/api/olap/pivot`, `/api/hourly`, `/api/weather`, `/api/day-type`, `/api/users`, `/api/filters` (DSS: xem mục dưới).
 - Bộ lọc dùng chung cho mọi endpoint: `year, season, month, weekday, weather, day_type, time_band` (nhiều giá trị cách nhau bởi dấu phẩy).
 - Định nghĩa KPI: *Peak/Lowest Hour* = giờ trong ngày có trung bình lượt thuê/giờ cao/thấp nhất;
   *Working/Non-working Day Demand* = trung bình lượt thuê **mỗi ngày**; các tỷ lệ tính trên tổng lượt thuê.
+- Nhiệt độ / độ ẩm (FR06, Nhóm 2): `/api/climate?by=temp|humidity` trả về lượt thuê TB / giờ theo khoảng
+  (nhiệt độ 5°C, gộp ≥35°C; độ ẩm 10%) và hệ số tương quan Pearson ở **mức giờ** và **mức ngày**.
+  Toàn bộ dữ liệu: nhiệt độ r = 0,41 (giờ) / 0,63 (ngày); độ ẩm r = −0,32 (giờ) / −0,10 (ngày):
+  phần lớn tương quan âm của độ ẩm theo giờ đến từ giờ trong ngày (đêm ẩm và vắng khách).
+  Khoảng có < 30 giờ quan sát bị gắn cờ; 22 giờ có độ ẩm = 0 (ngày 10/03/2011) nhiều khả năng là lỗi đo.
+
+## DSS: phân loại nhu cầu & khuyến nghị (FR09-FR10)
+- Mô hình: `src/dss/engine.py` (thuần Python, không cần DB). Truy xuất kho: `src/api/dss_queries.py`. SQL minh họa: `sql/04_dss_queries.sql`.
+- Quy trình: (1) chọn kỳ lịch sử bằng bộ lọc `year`/`season`/`month` → (2) truy xuất từ kho → (3) TB lượt thuê theo
+  **giờ × loại ngày (làm việc/nghỉ) × thời tiết** → (4) phân loại → (5) khuyến nghị và cảnh báo.
+- Ngưỡng: phân vị **P33,3 / P66,7** của lượt thuê theo giờ trong kỳ lịch sử (toàn bộ dữ liệu: 70 / 225 lượt/giờ, mỗi mức ≈ 1/3 số giờ).
+  `Thấp` < ngưỡng thấp ≤ `Trung bình` ≤ ngưỡng cao < `Cao`. Có thể đổi bằng `q_low`, `q_high` (vd. 0.25 / 0.75) để phân tích độ nhạy.
+- Nhóm có < 30 giờ quan sát bị gắn cờ độ tin cậy thấp; nhóm không có dữ liệu thì không khuyến nghị.
+- Các giờ Cao liên tiếp được gộp thành khung cảnh báo, kèm giờ cần chuẩn bị xong (1 giờ trước khung).
+- Chỉ khuyến nghị **mức độ** chuẩn bị, không tính số xe cụ thể (nguồn không có số xe sẵn sàng / vị trí trạm).
+- API: `/api/dss/thresholds` (khảo sát phân phối + ngưỡng), `/api/dss/plan?day_group=working|non_working&weather=1..4`
+  (kế hoạch 24 giờ cho tình huống sắp tới), `/api/dss/matrix` (toàn bộ ma trận phân loại).
 
 ## Lưu ý khi phân tích
 - `weekday`: 0 = Chủ nhật (theo nguồn UCI). `season` theo nguồn nên một tháng có thể thuộc 2 mùa.

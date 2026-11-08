@@ -159,6 +159,41 @@ def users(cur, filters, by):
                       FROM {V} {w} GROUP BY {group} ORDER BY {order}""", a)
 
 
+# FR06 / Nhóm 2: ảnh hưởng nhiệt độ, độ ẩm. Tên -> (biểu thức khoảng, độ rộng, khoảng cuối gộp, đơn vị)
+CLIMATE = {
+    "temp": ("LEAST(FLOOR(temp_c / 5) * 5, 35)", 5, 35, "°C"),
+    "humidity": ("LEAST(FLOOR(humidity_pct / 10) * 10, 90)", 10, 90, "%"),
+}
+CLIMATE_MIN_OBS = 30
+CORR_VARS = {"temp": "temp_c", "atemp": "atemp_c", "humidity": "humidity_pct", "windspeed": "windspeed_kmh"}
+
+
+def climate(cur, filters, by):
+    """Lượt thuê TB theo khoảng nhiệt độ / độ ẩm + hệ số tương quan Pearson (mức giờ và mức ngày)."""
+    if by not in CLIMATE:
+        raise ValueError("by phải là temp hoặc humidity")
+    expr, width, last, unit = CLIMATE[by]
+    w, a = where(filters)
+    # humidity_pct = NULL (lỗi cảm biến hum = 0) phải loại ra: LEAST(NULL, 90) trả về 90 trong PostgreSQL
+    col = CORR_VARS["temp" if by == "temp" else "humidity"]
+    wb = f"{w} AND {col} IS NOT NULL" if w else f"WHERE {col} IS NOT NULL"
+    rows = q(cur, f"""SELECT {expr}::int AS lo, COUNT(*)::int AS n_hours,
+                             AVG(total_cnt)::float8 AS avg_total, AVG(casual_cnt)::float8 AS avg_casual,
+                             AVG(registered_cnt)::float8 AS avg_registered
+                      FROM {V} {wb} GROUP BY 1 ORDER BY 1""", a)
+    for r in rows:
+        r["label"] = f"≥{r['lo']}{unit}" if (by == "temp" and r["lo"] == last) else f"{r['lo']}–{r['lo'] + width}{unit}"
+        r["reliable"] = r["n_hours"] >= CLIMATE_MIN_OBS
+    hourly = ", ".join(f"corr(total_cnt, {c})::float8 AS {k}" for k, c in CORR_VARS.items())
+    daily_avg = ", ".join(f"AVG({c}) AS {c}" for c in CORR_VARS.values())
+    daily = ", ".join(f"corr(total, {c})::float8 AS {k}" for k, c in CORR_VARS.items())
+    corr_h = q(cur, f"SELECT {hourly}, COUNT(*)::int AS n FROM {V} {w}", a)[0]
+    corr_d = q(cur, f"""SELECT {daily}, COUNT(*)::int AS n FROM (
+                            SELECT full_date, SUM(total_cnt) AS total, {daily_avg} FROM {V} {w} GROUP BY full_date) d""", a)[0]
+    return {"by": by, "unit": unit, "min_obs": CLIMATE_MIN_OBS, "bins": rows,
+            "correlation": {"hourly": corr_h, "daily": corr_d}}
+
+
 def pivot(cur, filters, row, col, measure):
     if row not in DIMS or col not in DIMS or row == col:
         raise ValueError("row/col không hợp lệ hoặc trùng nhau")

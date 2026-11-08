@@ -1,0 +1,61 @@
+% ==================== CHƯƠNG 4 ====================
+\newpage
+\chap{Dữ liệu nguồn}\label{sec:data}
+
+\sect{Nguồn dữ liệu}
+Đề tài sử dụng bộ \textbf{Bike Sharing Dataset} của UCI Machine Learning Repository~\cite{uci,fanaee}, được tổng hợp từ lịch sử chuyến đi của hệ thống Capital Bikeshare (Washington, D.C., Hoa Kỳ) kết hợp thông tin thời tiết và lịch ngày lễ. Dữ liệu thuộc giai đoạn 01/01/2011 -- 31/12/2012, định dạng CSV, gồm hai tệp:
+
+\begin{table}[H]
+\centering
+\caption{Các tệp dữ liệu nguồn}
+\begin{tabularx}{\textwidth}{|l|r|l|X|}
+\hline
+\textbf{Tệp} & \textbf{Số bản ghi} & \textbf{Độ chi tiết} & \textbf{Vai trò trong đề tài} \\ \hline
+\code{hour.csv} & 17.379 & Theo giờ & Nguồn chính để nạp bảng sự kiện \\ \hline
+\code{day.csv} & 731 & Theo ngày & Chỉ dùng để \textbf{đối chiếu} tổng theo ngày sau ETL \\ \hline
+\end{tabularx}
+\end{table}
+Hai tệp mô tả \textbf{cùng một hoạt động} ở hai mức chi tiết khác nhau nên không được nạp cộng gộp như hai tập giao dịch độc lập (nếu làm vậy tổng lượt thuê sẽ bị nhân đôi).
+
+\sect{Mô tả thuộc tính}
+\begin{table}[H]
+\centering
+\caption{Thuộc tính của tệp \code{hour.csv}}
+\label{tab:attrs}
+\small
+\begin{tabularx}{\textwidth}{|l|l|X|l|}
+\hline
+\textbf{Thuộc tính} & \textbf{Kiểu} & \textbf{Ý nghĩa} & \textbf{Nhóm} \\ \hline
+\code{instant} & int & Chỉ số bản ghi & Khóa \\ \hline
+\code{dteday} & date & Ngày ghi nhận & Thời gian \\ \hline
+\code{yr}, \code{mnth}, \code{hr} & int & Năm (0: 2011, 1: 2012), tháng 1--12, giờ 0--23 & Thời gian \\ \hline
+\code{weekday} & int & Thứ trong tuần, 0 = Chủ nhật & Thời gian \\ \hline
+\code{holiday}, \code{workingday} & 0/1 & Ngày lễ; ngày làm việc (không phải cuối tuần, không phải lễ) & Thời gian \\ \hline
+\code{season} & int & Mùa 1--4 & Môi trường \\ \hline
+\code{weathersit} & int & 1: quang mây; 2: sương mù, nhiều mây; 3: mưa/tuyết nhẹ; 4: mưa lớn, tuyết, sương mù dày & Môi trường \\ \hline
+\code{temp}, \code{atemp} & float & Nhiệt độ, nhiệt độ cảm nhận, chuẩn hóa (chia cho 41, 50) & Môi trường \\ \hline
+\code{hum}, \code{windspeed} & float & Độ ẩm, tốc độ gió, chuẩn hóa (chia cho 100, 67) & Môi trường \\ \hline
+\code{casual}, \code{registered} & int & Lượt thuê của người dùng vãng lai, đăng ký & Người dùng \\ \hline
+\code{cnt} & int & Tổng lượt thuê; \code{cnt = casual + registered} & Kết quả \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Khảo sát và đánh giá chất lượng dữ liệu}\label{sec:data-quality}
+Nhóm khảo sát dữ liệu bằng Pandas trước khi thiết kế. Kết quả:
+\begin{itemize}
+    \item \textbf{Đầy đủ cột, đúng kiểu}: 17 cột như mô tả; không có giá trị \code{null}, không có dòng trùng, \code{instant} duy nhất.
+    \item \textbf{Ràng buộc nghiệp vụ}: 100\% bản ghi thỏa \code{cnt = casual + registered}; mọi thuộc tính mã hóa nằm trong miền hợp lệ; các thuộc tính chuẩn hóa nằm trong $[0, 1]$.
+    \item \textbf{Giờ bị thiếu}: lý thuyết có $731 \times 24 = 17.544$ giờ nhưng chỉ có 17.379 bản ghi, tức \textbf{165 giờ không có bản ghi}, phân bố trên 76 ngày. Ngày thiếu nhiều nhất là 29/10/2012 (thiếu 23 giờ), 27/01/2011 (16 giờ), 30/10/2012 (13 giờ), trùng với các đợt thời tiết cực đoan (bão Sandy cuối tháng 10/2012, bão tuyết cuối tháng 01/2011) khi hệ thống gần như ngừng hoạt động.
+    \item \textbf{Giá trị bất thường}: 22 giờ có độ ẩm bằng 0 (tất cả thuộc ngày 10/03/2011) - nhiều khả năng là lỗi cảm biến; ETL nạp các giờ này với \code{humidity\_pct = NULL}. Ngoài ra 2.180 giờ (12,5\%) có tốc độ gió bằng 0 - tỷ lệ cao bất thường, có thể là thiếu dữ liệu thay vì lặng gió.
+    \item \textbf{Phân bố không cân bằng}: mức thời tiết 4 (mưa lớn/tuyết) chỉ có \textbf{3 giờ} quan sát; ngày lễ chỉ có 21 ngày.
+    \item \textbf{Thuộc tính mùa}: \code{season} của nguồn được gán theo mốc thiên văn (khoảng 21/3, 21/6, 23/9, 21/12) nên một tháng có thể thuộc hai mùa (ví dụ tháng 3 có 949 giờ mùa 1 và 524 giờ mùa 2).
+    \item \textbf{Phân phối lượt thuê}: lệch phải mạnh - trung bình 189,5 lượt/giờ, trung vị 142, độ lệch chuẩn 181,4, lớn nhất 977.
+\end{itemize}
+Các phát hiện này được dùng làm đầu vào cho quyết định thiết kế (mục~\ref{sec:design-issues}) và được xử lý hoặc gắn cờ trong ETL, dashboard và DSS.
+
+\sect{Đánh giá mức độ phù hợp}
+\textbf{Ưu điểm}: dữ liệu dạng bảng có cấu trúc, độ chi tiết theo giờ đủ để xây dựng mô hình đa chiều có phân cấp thời gian sâu (năm $\rightarrow$ quý $\rightarrow$ tháng $\rightarrow$ ngày $\rightarrow$ giờ); có đủ các nhóm thuộc tính thời gian, thời tiết, người dùng để trả lời toàn bộ câu hỏi nghiệp vụ; có hai tệp ở hai mức chi tiết giúp kiểm chứng ETL.
+
+\textbf{Về quy mô}: 17.379 dòng sự kiện là quy mô vừa phải. Nhóm lựa chọn bộ dữ liệu này vì chất lượng cao, có nguồn gốc rõ ràng, được trích dẫn rộng rãi và có thể kiểm chứng kết quả; trọng tâm của bài tập lớn là \textbf{phương pháp} thiết kế DW và DSS. Thiết kế không phụ thuộc quy mô: ETL nạp bằng lệnh \code{COPY} theo lô, bảng sự kiện có chỉ mục trên các khóa ngoại, nên có thể mở rộng sang dữ liệu chuyến đi chi tiết (hàng chục triệu dòng) mà Capital Bikeshare công bố (mục~\ref{sec:limits}).
+
+\textbf{Hạn chế}: dữ liệu cũ (2011--2012); không có vị trí trạm, số xe sẵn sàng hay lịch sử điều chuyển xe; thuộc tính thời tiết đã chuẩn hóa nên phải quy đổi khi trực quan hóa.

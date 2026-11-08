@@ -1,0 +1,35 @@
+% ==================== CHƯƠNG 12 ====================
+\newpage
+\chap{Thiết lập và khởi chạy dự án}\label{sec:setup}
+
+\sect{Yêu cầu môi trường}
+Python 3.10 trở lên, Node.js 18 trở lên, PostgreSQL 14 trở lên. Mã nguồn: \repoURL.
+
+\sect{Các bước cài đặt}
+\begin{lstlisting}[language=bash, caption={Cài đặt và nạp kho dữ liệu}]
+# 1. Cai thu vien Python
+pip install -r requirements.txt
+# 2. Cau hinh ket noi: sao chep .env.example thanh .env, dien PGPASSWORD
+#    (va PGHOST/PGPORT/PGUSER neu khac mac dinh)
+cp .env.example .env
+# 3. Tao database bike_dw (pgAdmin hoac psql), mot lan
+createdb -U postgres bike_dw
+# 4. Chay ETL: tao schema dw, nap du lieu, doi chieu -> docs/validation_report.md
+python src/etl/run_etl.py
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash, caption={Chạy API và dashboard (hai cửa sổ terminal)}]
+# Terminal 1 - API (cong 8000), chay tu thu muc goc repo
+python -m uvicorn --app-dir src api.main:app --port 8000
+# Terminal 2 - Dashboard (cong 5173)
+cd src/dashboard
+npm install          # chi lan dau
+npm run dev          # mo http://localhost:5173
+\end{lstlisting}
+Tài liệu API tự sinh tại \code{http://localhost:8000/docs}.
+
+\begin{lstlisting}[language=bash, caption={Kiểm thử và sinh lại hình cho báo cáo}]
+pip install -r requirements-dev.txt
+python -m pytest tests -q                  # can DB da nap ETL
+python report/scripts/make_figures.py      # sinh report/figures/*.pdf
+\end{lstlisting}

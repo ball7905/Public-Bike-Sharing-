@@ -1,0 +1,124 @@
+% =====================================================================
+%  Báo cáo Bài tập lớn CO4031 - Kho dữ liệu và Hệ hỗ trợ Quyết định
+%  Biên dịch: pdfLaTeX (Overleaf: Menu -> Compiler = pdfLaTeX), 2 lần để có mục lục.
+%  Hình số liệu sinh lại bằng: python report/scripts/make_figures.py
+% =====================================================================
+\documentclass[a4paper,11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T5]{fontenc}
+\usepackage[english]{babel}
+\usepackage[top=3cm, bottom=2.5cm, left=2.75cm, right=2.75cm, headheight=40pt]{geometry}
+\renewcommand{\ttdefault}{pcr}   % chữ đơn cách kiểu Courier như template
+\linespread{1.3}
+\setlength{\parindent}{2em}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage[table]{xcolor}
+\usepackage[nottoc]{tocbibind}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{amsmath}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,shapes.multipart,fit,calc}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue, citecolor=black}
+
+% Tên danh mục theo template Big Data (CO3137)
+\addto\captionsenglish{\renewcommand{\contentsname}{Table of Contents}}
+
+% Màu dùng trong sơ đồ TikZ và nhãn mức nhu cầu
+\definecolor{primary}{HTML}{10B981}
+\definecolor{heading1}{HTML}{1F4E79}
+\definecolor{heading2}{HTML}{2E75B6}
+\definecolor{heading3}{HTML}{376092}
+\definecolor{lvlow}{HTML}{16A34A}
+\definecolor{lvmed}{HTML}{F59E0B}
+\definecolor{lvhigh}{HTML}{DC2626}
+\definecolor{codebg}{gray}{0.94}
+
+% Header và Footer theo template HCMUT (logo + tên trường; môn học + Page x/y)
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{%
+  \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,0)
+      \put(0,-8){\includegraphics[width=8mm, height=8mm]{figures/hcmut.png}}
+    \end{picture} &
+    \begin{tabular}{l}
+      \textbf{\ttfamily HO CHI MINH CITY UNIVERSITY OF TECHNOLOGY - VNU-HCMC}\\
+      \textbf{\ttfamily FACULTY OF COMPUTER SCIENCE AND ENGINEERING}
+    \end{tabular}
+  \end{tabular}}
+\fancyfoot[L]{\scriptsize\ttfamily Data Warehouse and Decision Support System (CO4031) - 261}
+\fancyfoot[R]{\scriptsize\ttfamily Page {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt}
+
+% Đoạn mã: nền xám, khung mảnh, chú thích bên dưới (chỉ dùng ký tự ASCII trong mã nguồn)
+\lstset{basicstyle=\ttfamily\scriptsize\linespread{1.1}\selectfont, backgroundcolor=\color{codebg}, frame=single,
+  rulecolor=\color{gray!40}, breaklines=true, columns=fullflexible, captionpos=b,
+  keywordstyle=\bfseries, showstringspaces=false, xleftmargin=2pt, xrightmargin=2pt}
+
+% Tiện ích
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[#1]}}}   % chỗ nhóm cần tự điền
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\lvl}[2]{\colorbox{#1}{\textcolor{white}{\footnotesize\textbf{#2}}}}
+\newcommand{\Low}{\lvl{lvlow}{Thấp}}
+\newcommand{\Med}{\lvl{lvmed}{Trung bình}}
+\newcommand{\High}{\lvl{lvhigh}{Cao}}
+\newcommand{\chap}[1]{\section{#1}}
+\newcommand{\sect}[1]{\subsection{#1}}
+\newcommand{\subsect}[1]{\subsubsection{#1}}
+\setlist{itemsep=2pt, topsep=4pt}
+\renewcommand{\arraystretch}{1.25}
+
+% Thông tin chung - sửa tại đây
+\newcommand{\repoURL}{\url{https://github.com/ball7905/Public-Bike-Sharing-}}
+\newcommand{\videoURL}{\todo{Link video YouTube (unlisted) / Google Drive - nếu nhóm thuyết trình qua video}}
+
+\begin{document}
+
+\input{chapters/00_frontmatter}
+\input{chapters/01_tong_quan}
+\input{chapters/02_co_so_ly_thuyet}
+\input{chapters/03_phan_tich_yeu_cau}
+\input{chapters/04_du_lieu}
+\input{chapters/05_thiet_ke_dw}
+\input{chapters/06_etl}
+\input{chapters/07_hien_thuc}
+\input{chapters/08_dss}
+\input{chapters/09_ket_qua_phan_tich}
+\input{chapters/10_danh_gia}
+\input{chapters/11_han_che}
+\input{chapters/12_cai_dat}
+\input{chapters/13_ket_luan}
+
+% ==================== TÀI LIỆU THAM KHẢO ====================
+\newpage
+\renewcommand{\refname}{Tài liệu tham khảo}
+\begin{thebibliography}{99}
+  \bibitem{inmon} W. H. Inmon, \textit{Building the Data Warehouse}, 4th ed. Wiley, 2005.
+  \bibitem{kimball} R. Kimball, M. Ross, \textit{The Data Warehouse Toolkit}, 3rd ed. Wiley, 2013.
+  \bibitem{turban} E. Turban, J. E. Aronson, T.-P. Liang, \textit{Decision Support Systems and Intelligent Systems}, 7th ed. Prentice-Hall, 2005.
+  \bibitem{elmasri} R. Elmasri, S. B. Navathe, \textit{Fundamentals of Database Systems}, 7th ed. Addison-Wesley, 2016.
+  \bibitem{sharda} R. Sharda, D. Delen, E. Turban, \textit{Analytics, Data Science, \& Artificial Intelligence: Systems for Decision Support}, 7th ed. Pearson, 2020.
+  \bibitem{han} J. Han, M. Kamber, J. Pei, \textit{Data Mining: Concepts and Techniques}, 3rd ed. Morgan Kaufmann, 2012.
+  \bibitem{burstein} F. Burstein, C. W. Holsapple, \textit{Handbook on Decision Support Systems}. Springer, 2008.
+  \bibitem{quang} Trần Minh Quang et al., \textit{Cơ sở dữ liệu: khái niệm, phương pháp, và kỹ thuật phân tích thiết kế}. NXB ĐHQG-HCM, 2025.
+  \bibitem{simon} H. A. Simon, \textit{The New Science of Management Decision}. Harper \& Row, 1960.
+  \bibitem{fanaee} H. Fanaee-T, J. Gama, ``Event labeling combining ensemble detectors and background knowledge,'' \textit{Progress in Artificial Intelligence}, vol. 2, pp. 113--127, 2014.
+  \bibitem{uci} UCI Machine Learning Repository, \textit{Bike Sharing Dataset}, \url{https://archive.ics.uci.edu/dataset/275/bike+sharing+dataset}
+  \bibitem{postgres} PostgreSQL Global Development Group, \textit{PostgreSQL Documentation: Aggregate Functions (GROUPING SETS, ROLLUP, percentile\_cont)}, \url{https://www.postgresql.org/docs/}
+  \bibitem{fastapi} FastAPI Documentation, \url{https://fastapi.tiangolo.com/}
+  \bibitem{react} React Documentation, \url{https://react.dev/}
+  \bibitem{recharts} Recharts - A composable charting library built on React components, \url{https://recharts.org/}
+\end{thebibliography}
+
+\end{document}

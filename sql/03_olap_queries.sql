@@ -75,3 +75,22 @@ UNION ALL
 SELECT is_working_day,
        ROUND(SUM(total_cnt)::numeric / COUNT(DISTINCT full_date), 1) AS avg_daily_rentals
 FROM v_rentals_flat GROUP BY is_working_day;
+
+-- ===== FR06 / Nhóm 2: ảnh hưởng của nhiệt độ và độ ẩm =====
+-- Lượt thuê TB / giờ theo khoảng nhiệt độ 5°C (gộp >= 35°C)
+SELECT LEAST(FLOOR(temp_c / 5) * 5, 35)::int AS temp_from, COUNT(*) AS n_hours,
+       ROUND(AVG(total_cnt), 1) AS avg_total, ROUND(AVG(casual_cnt), 1) AS avg_casual, ROUND(AVG(registered_cnt), 1) AS avg_registered
+FROM dw.v_rentals_flat GROUP BY 1 ORDER BY 1;
+
+-- Lượt thuê TB / giờ theo khoảng độ ẩm 10%
+SELECT LEAST(FLOOR(humidity_pct / 10) * 10, 90)::int AS hum_from, COUNT(*) AS n_hours, ROUND(AVG(total_cnt), 1) AS avg_total
+FROM dw.v_rentals_flat GROUP BY 1 ORDER BY 1;
+
+-- Hệ số tương quan Pearson: mức giờ và mức ngày (mức ngày loại bớt ảnh hưởng giờ trong ngày)
+SELECT 'hourly' AS grain, corr(total_cnt, temp_c) AS r_temp, corr(total_cnt, humidity_pct) AS r_humidity,
+       corr(total_cnt, windspeed_kmh) AS r_windspeed
+FROM dw.v_rentals_flat
+UNION ALL
+SELECT 'daily', corr(total, temp), corr(total, hum), corr(total, wind)
+FROM (SELECT full_date, SUM(total_cnt) AS total, AVG(temp_c) AS temp, AVG(humidity_pct) AS hum, AVG(windspeed_kmh) AS wind
+      FROM dw.v_rentals_flat GROUP BY full_date) d;

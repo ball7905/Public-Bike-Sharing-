@@ -1,0 +1,78 @@
+% ==================== CHƯƠNG 6 ====================
+\newpage
+\chap{Quy trình ETL}\label{sec:etl}
+
+\sect{Tổng quan quy trình}
+Quy trình ETL được hiện thực bằng Python (Pandas, psycopg2) trong thư mục \code{src/etl/}, chạy bằng một lệnh duy nhất \code{python src/etl/run\_etl.py}. Hình~\ref{fig:etl} mô tả luồng xử lý.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=0.45cm,
+  box/.style={draw=heading1, fill=heading1!8, rounded corners=3pt, align=center, font=\footnotesize, minimum height=1.25cm, text width=2.15cm},
+  src/.style={box, fill=gray!12, draw=gray},
+  arr/.style={-{Latex[length=2mm]}, thick, heading2}]
+\node[src] (csv) {\textbf{Nguồn}\\ hour.csv\\ day.csv};
+\node[box, right=of csv] (ext) {\textbf{Extract}\\ extract.py\\ đọc CSV};
+\node[box, right=of ext] (tr) {\textbf{Transform}\\ transform.py\\ làm sạch, tạo chiều};
+\node[box, right=of tr] (ld) {\textbf{Load}\\ load.py\\ COPY, 1 giao dịch};
+\node[box, right=of ld, fill=primary!12, draw=primary] (val) {\textbf{Validate}\\ validate.py\\ 13 phép đối chiếu};
+\draw[arr] (csv) -- (ext); \draw[arr] (ext) -- (tr); \draw[arr] (tr) -- (ld); \draw[arr] (ld) -- (val);
+\node[src, below=0.9cm of ld, text width=3.2cm] (dw) {\textbf{PostgreSQL}\\ schema \code{dw} + view};
+\node[src, below=0.9cm of val, text width=2.6cm] (rep) {docs/\\validation\_report.md};
+\draw[arr] (ld) -- (dw); \draw[arr] (val) -- (rep);
+\end{tikzpicture}
+\caption{Luồng xử lý ETL (\code{hour.csv} được nạp; \code{day.csv} chỉ dùng ở bước đối chiếu)}
+\label{fig:etl}
+\end{figure}
+
+\sect{Extract}
+Đọc \code{hour.csv} và \code{day.csv} bằng Pandas từ thư mục cấu hình \code{DATA\_DIR}. Cấu hình kết nối CSDL lấy từ tệp \code{.env} (không đưa mật khẩu vào mã nguồn).
+
+\sect{Transform}
+Hàm \code{clean()} thực hiện các bước tiền xử lý (FR02):
+\begin{enumerate}
+    \item Kiểm tra đủ 17 cột bắt buộc; thiếu cột thì dừng ETL.
+    \item Chuyển \code{dteday} sang kiểu ngày theo định dạng \code{\%Y-\%m-\%d}.
+    \item Đếm giá trị \code{null}, dòng trùng, \code{instant} trùng; nếu có thì ghi cảnh báo vào log và loại bỏ.
+    \item Loại các dòng vi phạm \code{cnt = casual + registered} (có ghi log).
+    \item Kiểm tra miền giá trị: \code{season} $\in [1,4]$, \code{hr} $\in [0,23]$, \code{weekday} $\in [0,6]$, \code{weathersit} $\in [1,4]$, các cờ $\in \{0,1\}$, \code{mnth} $\in [1,12]$, các thuộc tính chuẩn hóa $\in [0,1]$; vi phạm thì dừng ETL.
+    \item Kiểm tra tính nhất quán của lịch: \code{yr}, \code{mnth}, \code{weekday} phải khớp với \code{dteday}; \code{season}, \code{holiday}, \code{workingday} phải giống nhau ở mọi giờ trong cùng một ngày (vì \code{dim\_date} chỉ lấy một giá trị mỗi ngày); vi phạm thì dừng ETL.
+    \item Phát hiện giá trị bất thường nhưng \textbf{giữ dòng} (lượt thuê vẫn đúng) và ghi log: 22 dòng \code{hum = 0} (lỗi cảm biến, xử lý ở \code{build\_fact()}) và 2.180 dòng \code{windspeed = 0} (có thể là thiếu dữ liệu, giữ nguyên).
+\end{enumerate}
+Sau đó các bảng được dựng:
+\begin{itemize}
+    \item \code{build\_dim\_date()}: sinh \textbf{lịch liên tục} từ ngày nhỏ nhất đến lớn nhất, ghép thuộc tính mùa, ngày lễ, ngày làm việc từ nguồn; nếu có ngày trong lịch mà nguồn không có thì dừng (đảm bảo 731 ngày). Tạo khóa \code{yyyymmdd}, quý, tên tháng, tên thứ, \code{is\_weekend}, \code{day\_type}; đếm số giờ có bản ghi mỗi ngày (\code{hours\_recorded}) và cờ \code{is\_complete\_day}.
+    \item \code{build\_dim\_hour()}: 24 giờ, nhãn \code{08:00-08:59}, khung giờ (\code{time\_band}).
+    \item \code{build\_dim\_weather()}: 4 mức thời tiết với tên và mô tả theo Readme UCI.
+    \item \code{build\_fact()}: ánh xạ khóa ngoại, giữ độ đo chuẩn hóa và quy đổi: $temp \times 41$, $atemp \times 50$, $hum \times 100$, $windspeed \times 67$; riêng \code{humidity\_pct} được đặt \code{NULL} khi \code{hum = 0} (vẫn giữ \code{hum\_norm} gốc).
+\end{itemize}
+
+\sect{Load}
+Hàm \code{create\_schema()} chạy \code{sql/01\_schema.sql} (xóa và tạo lại schema \code{dw}). Các bảng được nạp theo thứ tự \code{dim\_date} $\rightarrow$ \code{dim\_hour} $\rightarrow$ \code{dim\_weather} $\rightarrow$ \code{fact\_rentals} bằng lệnh \code{COPY ... FROM STDIN} (nạp theo lô, nhanh hơn nhiều so với \code{INSERT} từng dòng), \textbf{trong một giao dịch}: lỗi ở bất kỳ bảng nào thì \code{ROLLBACK}, không để kho ở trạng thái nạp dở. Cuối cùng chạy \code{ANALYZE} để cập nhật thống kê cho bộ tối ưu truy vấn và tạo view \code{v\_rentals\_flat} (\code{sql/02\_views.sql}).
+
+\sect{Đối chiếu sau khi nạp (Validate)}
+Hàm \code{validate()} so sánh kho với cả hai tệp nguồn và ghi kết quả ra \code{docs/validation\_report.md}. ETL trả về mã lỗi khác 0 nếu có phép đối chiếu thất bại. Kết quả lần chạy cuối:
+
+\begin{table}[H]
+\centering
+\caption{Kết quả đối chiếu ETL}
+\label{tab:etl-validate}
+\begin{tabularx}{\textwidth}{|X|r|r|c|}
+\hline
+\textbf{Kiểm tra} & \textbf{Kỳ vọng} & \textbf{Thực tế} & \textbf{Kết quả} \\ \hline
+Số dòng fact = số dòng \code{hour.csv} & 17.379 & 17.379 & PASS \\ \hline
+Tổng \code{cnt} (fact và \code{hour.csv}) & 3.292.679 & 3.292.679 & PASS \\ \hline
+Tổng \code{casual} (fact và \code{hour.csv}) & 620.017 & 620.017 & PASS \\ \hline
+Tổng \code{registered} (fact và \code{hour.csv}) & 2.672.662 & 2.672.662 & PASS \\ \hline
+Tổng \code{cnt} (fact và \code{day.csv}) & 3.292.679 & 3.292.679 & PASS \\ \hline
+Số ngày \code{dim\_date} = số dòng \code{day.csv} & 731 & 731 & PASS \\ \hline
+Số dòng \code{dim\_hour} & 24 & 24 & PASS \\ \hline
+Số dòng fact mồ côi (vi phạm khóa ngoại) & 0 & 0 & PASS \\ \hline
+Số dòng vi phạm \code{cnt = casual + registered} & 0 & 0 & PASS \\ \hline
+Số ngày có tổng \code{cnt} lệch \code{day.csv} & 0 & 0 & PASS \\ \hline
+Tổng \code{hours\_recorded} (\code{dim\_date}) = số dòng \code{hour.csv} & 17.379 & 17.379 & PASS \\ \hline
+Số ngày thiếu giờ (\code{is\_complete\_day = false}) & 76 & 76 & PASS \\ \hline
+Số dòng \code{humidity\_pct} NULL = số dòng \code{hum = 0} ở nguồn & 22 & 22 & PASS \\ \hline
+\end{tabularx}
+\end{table}
+Phép đối chiếu theo từng ngày với \code{day.csv} là bằng chứng mạnh nhất cho tính chính xác (NFR01): tổng theo giờ của cả 731 ngày đều khớp với tệp tổng hợp theo ngày, độc lập với tệp dùng để nạp.

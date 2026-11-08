@@ -1,0 +1,101 @@
+% ==================== CHƯƠNG 5 ====================
+\newpage
+\chap{Thiết kế kho dữ liệu}\label{sec:dwdesign}
+
+\sect{Áp dụng quy trình thiết kế bốn bước}
+Nhóm áp dụng quy trình của Kimball (mục~\ref{sec:theory-design}):
+\begin{enumerate}
+    \item \textbf{Quy trình nghiệp vụ}: hoạt động \textbf{thuê xe} của toàn hệ thống.
+    \item \textbf{Độ hạt}: \textbf{một dòng sự kiện = số lượt thuê của toàn hệ thống trong một giờ của một ngày}. Đây là mức chi tiết nhỏ nhất có trong nguồn; chọn mức nhỏ nhất giúp roll-up lên mọi mức cao hơn và cho phép DSS phân tích theo giờ (câu hỏi Q1.2, Q2.4, nhóm Q3).
+    \item \textbf{Các chiều}: \textbf{Ngày} (\code{dim\_date}), \textbf{Giờ} (\code{dim\_hour}), \textbf{Thời tiết} (\code{dim\_weather}).
+    \item \textbf{Các sự kiện}: lượt thuê theo nhóm người dùng (\code{casual\_cnt}, \code{registered\_cnt}, \code{total\_cnt}) - cộng được hoàn toàn; các đo lường môi trường (nhiệt độ, độ ẩm, tốc độ gió) - không cộng được, chỉ lấy trung bình.
+\end{enumerate}
+
+\sect{Lược đồ Star Schema}
+Hình~\ref{fig:star} thể hiện lược đồ hình sao của kho \code{dw} trên PostgreSQL.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  tbl/.style={draw=heading1, rectangle split, rectangle split parts=2, rectangle split part fill={heading1,white},
+              rounded corners=2pt, font=\scriptsize\ttfamily, align=left, inner sep=3pt, text width=#1},
+  tbl/.default=4.1cm, rel/.style={-{Latex[length=2mm]}, thick, heading2}]
+\node[tbl=4.6cm] (fact) at (0,0) {\textcolor{white}{\textbf{fact\_rentals}} \nodepart{two}
+  PK rental\_key SERIAL\\ \ \ \ instant\_id (degenerate, UNIQUE)\\ FK date\_key\\ FK hour\_key\\ FK weather\_key\\
+  \ \ \ casual\_cnt, registered\_cnt\\ \ \ \ total\_cnt\\ \ \ \ temp\_c, atemp\_c\\ \ \ \ humidity\_pct, windspeed\_kmh\\
+  \ \ \ temp\_norm, atemp\_norm,\\ \ \ \ hum\_norm, windspeed\_norm};
+\node[tbl] (date) at (-5.6,1.2) {\textcolor{white}{\textbf{dim\_date}} \nodepart{two}
+  PK date\_key (yyyymmdd)\\ full\_date\\ year, quarter, month\\ month\_name, day\_of\_month\\ weekday, weekday\_name\\
+  is\_weekend, is\_holiday\\ is\_working\_day, day\_type\\ season, season\_name\\ hours\_recorded\\ is\_complete\_day};
+\node[tbl=3.6cm] (hour) at (5.4,1.6) {\textcolor{white}{\textbf{dim\_hour}} \nodepart{two}
+  PK hour\_key (0..23)\\ hour\_label\\ time\_band};
+\node[tbl=3.6cm] (weather) at (5.4,-1.8) {\textcolor{white}{\textbf{dim\_weather}} \nodepart{two}
+  PK weather\_key (1..4)\\ weather\_name\\ description};
+\draw[rel] (date.east) -- node[above, font=\scriptsize] {1 : n} (fact.west |- date.east);
+\draw[rel] (hour.west) -- node[above, font=\scriptsize] {1 : n} (fact.east |- hour.west);
+\draw[rel] (weather.west) -- node[above, font=\scriptsize] {1 : n} (fact.east |- weather.west);
+\end{tikzpicture}
+\caption{Lược đồ Star Schema của kho dữ liệu}
+\label{fig:star}
+\end{figure}
+
+\sect{Mô tả các bảng}
+\begin{table}[H]
+\centering
+\caption{Các bảng trong kho dữ liệu}
+\label{tab:dw-tables}
+\begin{tabularx}{\textwidth}{|l|r|X|}
+\hline
+\textbf{Bảng} & \textbf{Số dòng} & \textbf{Nội dung và phân cấp} \\ \hline
+\code{fact\_rentals} & 17.379 & Sự kiện thuê xe theo giờ; ràng buộc \code{CHECK (total\_cnt = casual\_cnt + registered\_cnt)}, các lượt thuê $\ge 0$, \code{UNIQUE (date\_key, hour\_key)}. \\ \hline
+\code{dim\_date} & 731 & Lịch đầy đủ 2011--2012. Phân cấp \textit{năm $\rightarrow$ quý $\rightarrow$ tháng $\rightarrow$ ngày}; phân cấp phụ \textit{mùa}; thuộc tính phân loại ngày: \code{is\_weekend}, \code{is\_holiday}, \code{is\_working\_day}, \code{day\_type} $\in$ \{Working day, Weekend, Holiday\}; thuộc tính chất lượng: \code{hours\_recorded} (số giờ có bản ghi trong nguồn, 1--24) và \code{is\_complete\_day} (= đủ 24 giờ). \\ \hline
+\code{dim\_hour} & 24 & Giờ trong ngày; phân cấp \textit{khung giờ $\rightarrow$ giờ}: Đêm (0--5h), Sáng (6--9h), Trưa (10--15h), Chiều (16--19h), Tối (20--23h). \\ \hline
+\code{dim\_weather} & 4 & Bốn mức thời tiết của nguồn với tên ngắn và mô tả đầy đủ. \\ \hline
+\code{v\_rentals\_flat} & (view) & View đã nối sẵn bảng sự kiện với ba bảng chiều; là điểm truy cập duy nhất của OLAP, API và DSS. \\ \hline
+\end{tabularx}
+\end{table}
+Ba chỉ mục B-tree trên các khóa ngoại (\code{idx\_fact\_date}, \code{idx\_fact\_hour}, \code{idx\_fact\_weather}) hỗ trợ các phép lọc slice/dice và phép nối.
+
+\sect{Các vấn đề thiết kế và quyết định của nhóm}\label{sec:design-issues}
+\begin{table}[H]
+\centering
+\caption{Các vấn đề thiết kế kho dữ liệu và cách giải quyết}
+\label{tab:design-issues}
+\small
+\begin{tabularx}{\textwidth}{|p{3.3cm}|X|}
+\hline
+\textbf{Vấn đề} & \textbf{Quyết định và lý do} \\ \hline
+Chọn độ hạt & Theo giờ (mức nhỏ nhất của nguồn). Mức ngày sẽ làm mất thông tin giờ cao điểm - vốn là trọng tâm của DSS. \\ \hline
+Star hay Snowflake & Chọn \textbf{Star}. Các chiều rất nhỏ (731, 24, 4 dòng), chuẩn hóa thêm (tách mùa, tháng, khung giờ thành bảng riêng) không tiết kiệm đáng kể mà làm truy vấn thêm phép nối. \\ \hline
+Khóa của chiều & \code{date\_key} dạng số \code{yyyymmdd} (khóa thay thế ``thông minh'' dễ đọc, sắp xếp đúng thứ tự thời gian); \code{hour\_key}, \code{weather\_key} giữ mã tự nhiên vì ổn định. \\ \hline
+Chiều suy biến & \code{instant\_id} (khóa dòng nguồn) lưu trong bảng sự kiện với ràng buộc \code{UNIQUE} để truy vết về nguồn và chống nạp trùng. \\ \hline
+Chiều thay đổi chậm (SCD) & Các chiều mang tính tĩnh (lịch, giờ, mức thời tiết) nên không cần SCD; nếu sau này bổ sung chiều Trạm (địa chỉ, sức chứa thay đổi) sẽ dùng SCD loại 2. \\ \hline
+Mùa và loại ngày & Đặt trong \code{dim\_date} (thuộc tính của ngày) thay vì tách chiều riêng. \code{day\_type} ưu tiên \textit{Holiday} $>$ \textit{Weekend} $>$ \textit{Working day} để mỗi ngày thuộc đúng một loại. \\ \hline
+Thuộc tính thời tiết chuẩn hóa & Lưu \textbf{cả hai} dạng: giá trị gốc (\code{*\_norm}) để truy vết, giá trị quy đổi ($^\circ$C, \%, km/h theo Readme UCI) để trực quan hóa. Được xem là độ đo không cộng được, chỉ dùng \code{AVG}. \\ \hline
+Giờ bị thiếu (165 giờ) & \textbf{Không tự sinh dòng} giá trị 0: không có bản ghi không đồng nghĩa với không có nhu cầu (nhiều giờ trùng bão). Các chỉ số trung bình theo giờ chỉ tính trên giờ có bản ghi. Thay vào đó, \code{dim\_date} lưu \code{hours\_recorded} và cờ \code{is\_complete\_day} (76 ngày thiếu giờ) để phân tích theo ngày có thể lọc ngày không đầy đủ. \\ \hline
+Dữ liệu bất thường & Không xóa dòng nào (lượt thuê vẫn đúng). 22 giờ có độ ẩm 0\% (ngày 10/03/2011, lỗi cảm biến) được nạp với \code{humidity\_pct = NULL}, giữ giá trị gốc \code{hum\_norm} để truy vết; các phân tích độ ẩm tự loại các dòng này. 2.180 giờ (12,5\%) có tốc độ gió 0 được giữ nguyên nhưng ghi chú cần thận trọng. Các nhóm ít mẫu ($<30$ giờ) như mức thời tiết 4 được gắn cờ. \\ \hline
+Chiến lược nạp & Nạp toàn bộ, \textbf{idempotent}: mỗi lần chạy xóa và tạo lại schema \code{dw} trong một giao dịch - phù hợp dữ liệu tĩnh; hướng nạp tăng dần được nêu ở mục~\ref{sec:limits}. \\ \hline
+Toàn vẹn dữ liệu & Khóa chính, khóa ngoại, \code{CHECK} miền giá trị ở cả ba chiều và bảng sự kiện, \code{UNIQUE} trên khóa nghiệp vụ. \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Đoạn mã định nghĩa bảng sự kiện}
+\begin{lstlisting}[language=SQL, caption={Định nghĩa bảng sự kiện (trích \code{sql/01\_schema.sql})}]
+CREATE TABLE fact_rentals (
+    rental_key      SERIAL PRIMARY KEY,
+    instant_id      INTEGER NOT NULL UNIQUE,      -- degenerate dimension
+    date_key        INTEGER  NOT NULL REFERENCES dim_date(date_key),
+    hour_key        SMALLINT NOT NULL REFERENCES dim_hour(hour_key),
+    weather_key     SMALLINT NOT NULL REFERENCES dim_weather(weather_key),
+    casual_cnt      INTEGER NOT NULL CHECK (casual_cnt >= 0),
+    registered_cnt  INTEGER NOT NULL CHECK (registered_cnt >= 0),
+    total_cnt       INTEGER NOT NULL CHECK (total_cnt >= 0),
+    temp_norm NUMERIC(6,4) NOT NULL, ...,  temp_c NUMERIC(5,2) NOT NULL, ...,
+    humidity_pct    NUMERIC(5,2),         -- hum * 100; NULL khi hum = 0 (loi cam bien)
+    CONSTRAINT chk_total CHECK (total_cnt = casual_cnt + registered_cnt),
+    UNIQUE (date_key, hour_key)
+);
+CREATE INDEX idx_fact_date    ON fact_rentals(date_key);
+CREATE INDEX idx_fact_hour    ON fact_rentals(hour_key);
+CREATE INDEX idx_fact_weather ON fact_rentals(weather_key);
+\end{lstlisting}

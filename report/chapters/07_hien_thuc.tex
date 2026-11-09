@@ -16,7 +16,7 @@ Hệ thống theo kiến trúc nhiều tầng (Hình~\ref{fig:arch}): tầng ngu
 \node[box, right=of etl, fill=heading1!10, text width=3.2cm] (dw) {\textbf{PostgreSQL}\\ schema \code{dw}: Star Schema\\ view \code{v\_rentals\_flat}};
 \node[box, below=1.1cm of dw, text width=3.2cm] (api) {\textbf{FastAPI}\\ OLAP, KPI, climate\\ \code{/api/dss/*}};
 \node[box, left=of api, fill=primary!12, draw=primary] (dss) {\textbf{Mô hình DSS}\\ \code{src/dss/engine.py}\\ ngưỡng, phân loại,\\ khuyến nghị};
-\node[box, below=1.1cm of api, text width=3.2cm] (ui) {\textbf{Dashboard React}\\ Vite, Recharts\\ bộ lọc, KPI, OLAP, DSS};
+\node[box, below=1.1cm of api, text width=3.2cm] (ui) {\textbf{Dashboard React}\\ Vite, Recharts\\ 5 trang, bộ lọc dropdown};
 \node[box, left=of ui, fill=gray!12] (user) {\textbf{Người dùng}\\ quản lý vận hành,\\ nhà phân tích};
 \draw[arr] (csv) -- (etl); \draw[arr] (etl) -- (dw);
 \draw[arr] (dw) -- node[right, font=\scriptsize] {SQL chỉ đọc} (api);
@@ -129,32 +129,39 @@ FROM v_rentals_flat GROUP BY month, month_name ORDER BY month;
 Mọi endpoint phân tích dùng chung bộ lọc \code{year, season, month, weekday, weather, day\_type, time\_band} (nhiều giá trị cách nhau bởi dấu phẩy) - đây chính là phép \textbf{slice/dice} tổng quát. Về an toàn: tên cột và biểu thức đưa vào SQL chỉ lấy từ danh sách trắng (whitelist) trong mã; mọi giá trị từ người dùng đều được \textbf{tham số hóa}; kết nối CSDL ở chế độ chỉ đọc. Kiểm thử tự động xác nhận chuỗi tấn công SQL injection không có tác dụng (mục~\ref{sec:eval}).
 
 \sect{Dashboard}
-Dashboard (Hình~\ref{fig:dash-overview}--\ref{fig:dash-pivot}) gồm: thanh bộ lọc dạng chip đa chọn áp dụng cho mọi biểu đồ; 8 thẻ KPI; biểu đồ drill-down theo thời gian có breadcrumb (bấm vào cột để khoan xuống, bấm breadcrumb để cuộn lên); 4 biểu đồ phân tích (theo giờ, thời tiết, loại ngày, nhóm người dùng); biểu đồ nhiệt độ/độ ẩm kèm bảng tương quan; bảng pivot với hàng, cột, độ đo tùy chọn và tô màu theo giá trị; và khu vực DSS (mục~\ref{sec:dss-ui}).
+Dashboard (Hình~\ref{fig:dash-overview}--\ref{fig:dash-pivot}) được thiết kế theo bố cục webapp: \textbf{thanh điều hướng bên trái} (sidebar, có biểu tượng cho từng mục) dẫn tới \textbf{5 trang} theo nhóm câu hỏi nghiệp vụ, mỗi trang có địa chỉ riêng (\code{\#/overview}, \code{\#/time}, \code{\#/weather}, \code{\#/pivot}, \code{\#/dss}) và tiêu đề kèm mô tả ngắn. \textbf{Bộ lọc} được trình bày dạng \textbf{select dropdown đa chọn} (Năm, Mùa, Thời tiết, Loại ngày, Khung giờ): nút hiển thị giá trị đang chọn (``Tất cả'' khi không lọc), danh sách có ô đánh dấu, các giá trị đã chọn hiện thành nhãn có nút xóa nhanh; bộ lọc dùng chung, giữ nguyên khi chuyển trang và luôn ở đầu màn hình khi cuộn. Trang DSS chỉ hiện bộ lọc Năm và Mùa vì DSS không dùng các bộ lọc khác. Trên màn hình hẹp (điện thoại), sidebar chuyển thành thanh biểu tượng phía trên; giao diện hỗ trợ cả chế độ sáng và tối:
+\begin{itemize}
+    \item \textbf{Tổng quan}: 8 thẻ KPI và biểu đồ drill-down theo thời gian có breadcrumb (bấm vào cột để khoan xuống, bấm breadcrumb để cuộn lên).
+    \item \textbf{Theo thời gian} (Nhóm 1): nhu cầu theo giờ, theo loại ngày và theo nhóm người dùng.
+    \item \textbf{Thời tiết \& khí hậu} (Nhóm 2): nhu cầu theo mức thời tiết, theo khoảng nhiệt độ/độ ẩm kèm bảng tương quan.
+    \item \textbf{Bảng Pivot}: hàng, cột, độ đo tùy chọn và tô màu theo giá trị.
+    \item \textbf{Hỗ trợ quyết định} (Nhóm 3): thành phần DSS (mục~\ref{sec:dss-ui}).
+\end{itemize}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/dash_overview.jpg}
-\caption{Dashboard: bộ lọc, 8 KPI và biểu đồ drill-down theo thời gian}
+\caption{Trang Tổng quan: sidebar điều hướng, bộ lọc dropdown, 8 KPI và biểu đồ drill-down theo thời gian}
 \label{fig:dash-overview}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/dash_analysis.jpg}
-\caption{Dashboard: phân tích theo giờ, thời tiết, loại ngày và nhóm người dùng}
+\caption{Trang Theo thời gian: nhu cầu theo giờ, loại ngày và nhóm người dùng}
 \label{fig:dash-analysis}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/dash_climate.jpg}
-\caption{Dashboard: ảnh hưởng của nhiệt độ, độ ẩm và bảng hệ số tương quan}
+\caption{Trang Thời tiết \& khí hậu: nhu cầu theo thời tiết, nhiệt độ, độ ẩm và bảng hệ số tương quan}
 \label{fig:dash-climate}
 \end{figure}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/dash_pivot.jpg}
-\caption{Dashboard: bảng pivot tháng $\times$ thời tiết}
+\caption{Trang Bảng Pivot: tháng $\times$ thời tiết}
 \label{fig:dash-pivot}
 \end{figure}

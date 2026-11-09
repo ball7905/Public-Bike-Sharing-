@@ -59,6 +59,13 @@ python -m pytest tests -q           # cần DB đã nạp ETL
   `Thấp` < ngưỡng thấp ≤ `Trung bình` ≤ ngưỡng cao < `Cao`. Có thể đổi bằng `q_low`, `q_high` (vd. 0.25 / 0.75) để phân tích độ nhạy.
 - Nhóm có < 30 giờ quan sát bị gắn cờ độ tin cậy thấp; nhóm không có dữ liệu thì không khuyến nghị.
 - Các giờ Cao liên tiếp được gộp thành khung cảnh báo, kèm giờ cần chuẩn bị xong (1 giờ trước khung).
+- Có thể chọn một hoặc nhiều thứ thay cho nhóm ngày: `/api/dss/plan?day_of_week=1,2` (0 = Chủ nhật như nguồn),
+  dùng các ngày thuộc các thứ đó không phải ngày lễ (ngày lễ thuộc nhóm ngày nghỉ); chọn đủ 1..5 = nhóm ngày làm việc.
+  Dashboard: chọn từ 2 thứ thì mặc định lập kế hoạch riêng cho từng thứ (gọi API mỗi thứ một lần) và so sánh;
+  có tùy chọn "Gộp thành 1 kế hoạch" (gọi API với danh sách thứ) kèm cảnh báo khi gộp ngày trong tuần với cuối tuần.
+- Nhóm khách: mức chuẩn bị vẫn theo tổng lượt (xe dùng chung); tỷ lệ vãng lai của giờ/khung so với tỷ lệ chung của kỳ
+  (18,8%) quyết định loại hỗ trợ: ≥ 1,5× → nhiều khách vãng lai (hướng dẫn, hỗ trợ thanh toán), ≤ 0,75× → chủ yếu
+  khách đăng ký (đủ xe đúng giờ), còn lại → hỗn hợp. Trả về trong `hours[].segment`, `alerts[].segment`, `user_mix`.
 - Chỉ khuyến nghị **mức độ** chuẩn bị, không tính số xe cụ thể (nguồn không có số xe sẵn sàng / vị trí trạm).
 - API: `/api/dss/thresholds` (khảo sát phân phối + ngưỡng), `/api/dss/plan?day_group=working|non_working&weather=1..4`
   (kế hoạch 24 giờ cho tình huống sắp tới), `/api/dss/matrix` (toàn bộ ma trận phân loại).

@@ -46,10 +46,10 @@ Quy trình xử lý gồm 5 bước theo yêu cầu đề tài: (1) người dù
 \begin{tabularx}{\textwidth}{|p{3.6cm}|X|}
 \hline
 \textbf{Nhóm biến} & \textbf{Biến trong đề tài} \\ \hline
-Biến không kiểm soát (tham số tình huống) & Giờ $h \in \{0..23\}$; loại ngày $d \in$ \{làm việc, nghỉ\}; thời tiết dự kiến $w \in \{1..4\}$; kỳ lịch sử $P$ (năm, mùa, tháng) \\ \hline
+Biến không kiểm soát (tham số tình huống) & Giờ $h \in \{0..23\}$; loại ngày $d \in$ \{làm việc, nghỉ\} hoặc một / nhiều thứ cụ thể trong tuần (thứ hai \ldots{} chủ nhật, không gồm ngày lễ); thời tiết dự kiến $w \in \{1..4\}$; kỳ lịch sử $P$ (năm, mùa, tháng) \\ \hline
 Tham số mô hình & Phân vị ngưỡng $q_L, q_H$ (mặc định $1/3$, $2/3$); ngưỡng số mẫu tối thiểu $n_{min} = 30$ \\ \hline
-Biến kết quả & Nhu cầu kỳ vọng $\bar{y}_{h,d,w}$; mức nhu cầu \{Thấp, Trung bình, Cao\}; khung cảnh báo; danh sách giờ ưu tiên \\ \hline
-Biến quyết định (người dùng chọn) & Mức chuẩn bị nguồn lực cho từng giờ: cơ bản / theo dõi / tăng cường \\ \hline
+Biến kết quả & Nhu cầu kỳ vọng $\bar{y}_{h,d,w}$; mức nhu cầu \{Thấp, Trung bình, Cao\}; khung cảnh báo; danh sách giờ ưu tiên; tỷ lệ khách vãng lai $c_{h,d,w}$ và nhóm khách \{chủ yếu đăng ký, hỗn hợp, nhiều vãng lai\} \\ \hline
+Biến quyết định (người dùng chọn) & Mức chuẩn bị nguồn lực cho từng giờ: cơ bản / theo dõi / tăng cường; loại hỗ trợ: ưu tiên đủ xe đúng giờ / hướng dẫn và hỗ trợ khách mới \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -119,7 +119,24 @@ Với $\theta_L = 70$ và $\theta_H = 225$, tỷ lệ giờ quan sát rơi vào 
 \end{table}
 
 \subsect{Cảnh báo và danh sách ưu tiên}
-Để trả lời câu hỏi ``khi nhu cầu dự kiến tăng cao, hệ thống cảnh báo gì'' (Q3.4), các giờ liên tiếp ở mức Cao được \textbf{gộp thành một khung cảnh báo}. Mỗi cảnh báo nêu: khoảng thời gian, giờ đỉnh và nhu cầu trung bình tại đỉnh, \textbf{thời điểm phải hoàn tất chuẩn bị} (một giờ trước khi khung bắt đầu). Các giờ Cao được sắp xếp giảm dần theo nhu cầu tạo thành \textbf{danh sách ưu tiên} (Q3.1). Ngoài ra, mỗi giờ có chỉ số \textit{so với trung bình kỳ} ($\bar{y}_{h,d,w} / \bar{y}$) và tỷ lệ người dùng đăng ký để người vận hành hiểu đặc điểm của nhu cầu.
+Để trả lời câu hỏi ``khi nhu cầu dự kiến tăng cao, hệ thống cảnh báo gì'' (Q3.4), các giờ liên tiếp ở mức Cao được \textbf{gộp thành một khung cảnh báo}. Mỗi cảnh báo nêu: khoảng thời gian, giờ đỉnh và nhu cầu trung bình tại đỉnh, \textbf{thời điểm phải hoàn tất chuẩn bị} (một giờ trước khi khung bắt đầu). Các giờ Cao được sắp xếp giảm dần theo nhu cầu tạo thành \textbf{danh sách ưu tiên} (Q3.1). Ngoài ra, mỗi giờ có chỉ số \textit{so với trung bình kỳ} ($\bar{y}_{h,d,w} / \bar{y}$) để người vận hành hiểu mức độ chênh lệch.
+
+\subsect{Nhóm khách cần phục vụ}\label{sec:dss-users}
+Dữ liệu tách lượt thuê thành hai nhóm: \textbf{khách đăng ký} (thành viên, chủ yếu đi làm, đi học) và \textbf{khách vãng lai} (thuê lẻ, chủ yếu đi chơi, tham quan). Nhóm cân nhắc hai cách đưa thông tin này vào DSS:
+\begin{itemize}
+    \item \textit{Xếp mức riêng cho từng nhóm} (ngưỡng tính trên phân phối của nhóm đó): với khách vãng lai, ngưỡng Cao chỉ là 34 lượt/giờ nên gần như cả ban ngày (10--20h ngày làm việc, 9--21h ngày nghỉ) đều thành Cao - khuyến nghị mất khả năng phân biệt; với khách đăng ký (81\% lượt thuê), kết quả gần như trùng với cách xếp theo tổng.
+    \item \textit{Giữ mức theo tổng, bổ sung thành phần khách} (\textbf{cách được chọn}): xe là tài sản dùng chung cho cả hai nhóm nên \textbf{số xe cần chuẩn bị} phụ thuộc tổng lượt thuê; còn \textbf{thành phần khách} quyết định \textbf{loại hỗ trợ} cần bố trí.
+\end{itemize}
+Gọi $c_{h,d,w}$ là tỷ lệ khách vãng lai của nhóm (tổng lượt vãng lai trung bình chia tổng lượt trung bình) và $\bar{c}$ là tỷ lệ vãng lai chung của kỳ lịch sử ($\bar{c} = 18{,}8\%$ trên toàn bộ dữ liệu). Mốc phân nhóm được đặt tương đối so với $\bar{c}$ nên tự điều chỉnh theo kỳ được chọn:
+\[
+\text{segment}(h,d,w) =
+\begin{cases}
+\text{Nhiều khách vãng lai} & \text{nếu } c_{h,d,w} \ge 1{,}5\,\bar{c} \quad (\ge 28{,}2\%)\\
+\text{Chủ yếu khách đăng ký} & \text{nếu } c_{h,d,w} \le 0{,}75\,\bar{c} \quad (\le 14{,}1\%)\\
+\text{Khách hỗn hợp} & \text{còn lại}
+\end{cases}
+\]
+Tỷ lệ của một khung cảnh báo được tính có trọng số theo lượt thuê ($\sum$ vãng lai $/ \sum$ tổng của các giờ trong khung). Mỗi nhóm khách có một khuyến nghị bổ sung: \textit{chủ yếu đăng ký} - ưu tiên có đủ xe sẵn sàng đúng giờ, điều phối xe kịp thời; \textit{nhiều vãng lai} - bố trí nhân sự hướng dẫn thuê xe, hỗ trợ thanh toán và giải đáp cho khách mới; \textit{hỗn hợp} - kết hợp cả hai. Khuyến nghị này được ghép vào nội dung cảnh báo của khung.
 
 \begin{lstlisting}[language=Python, caption={Phân loại và gộp khung cảnh báo (trích \code{src/dss/engine.py})}]
 def classify(value, th):
@@ -163,15 +180,40 @@ Hình~\ref{fig:dss-plan} là kế hoạch 24 giờ cho hai tình huống thườ
 \caption{Kết quả DSS theo tình huống (ngưỡng P33,3/P66,7, toàn bộ dữ liệu)}
 \label{tab:scenarios}
 \small
-\begin{tabularx}{\textwidth}{|l|l|c|c|c|X|}
+\begin{tabularx}{\textwidth}{|l|l|c|c|c|X|p{2.6cm}|}
 \hline
-\textbf{Loại ngày} & \textbf{Thời tiết} & \textbf{Thấp} & \textbf{TB} & \textbf{Cao} & \textbf{Khung cảnh báo} \\ \hline
-Làm việc & Clear & 6 & 10 & 8 & 07:00--09:59 (đỉnh 8h, 504); 16:00--20:59 (đỉnh 17h, 574) \\ \hline
-Làm việc & Mist & 6 & 11 & 7 & 07:00--09:59; 16:00--19:59 \\ \hline
-Làm việc & Light rain/snow & 8 & 13 & 3 & 08:00--08:59; 17:00--18:59 \\ \hline
-Nghỉ & Clear & 6 & 8 & 10 & 10:00--19:59 (đỉnh 12--13h, 396) \\ \hline
-Nghỉ & Mist & 7 & 8 & 9 & 10:00--18:59 \\ \hline
-Nghỉ & Light rain/snow & 11 & 11 & 2 & 12:00--12:59; 15:00--15:59 (ít mẫu) \\ \hline
+\textbf{Loại ngày} & \textbf{Thời tiết} & \textbf{Thấp} & \textbf{TB} & \textbf{Cao} & \textbf{Khung cảnh báo} & \textbf{Nhóm khách (\% vãng lai)} \\ \hline
+Làm việc & Clear & 6 & 10 & 8 & 07:00--09:59 (đỉnh 8h, 504); 16:00--20:59 (đỉnh 17h, 574) & Chủ yếu đăng ký (5,9\%; 12,5\%) \\ \hline
+Làm việc & Mist & 6 & 11 & 7 & 07:00--09:59; 16:00--19:59 & Chủ yếu đăng ký (5,8\%; 10,5\%) \\ \hline
+Làm việc & Light rain/snow & 8 & 13 & 3 & 08:00--08:59; 17:00--18:59 & Chủ yếu đăng ký (3,9\%; 8,9\%) \\ \hline
+Nghỉ & Clear & 6 & 8 & 10 & 10:00--19:59 (đỉnh 12--13h, 396) & Nhiều vãng lai (35,4\%) \\ \hline
+Nghỉ & Mist & 7 & 8 & 9 & 10:00--18:59 & Nhiều vãng lai (32,9\%) \\ \hline
+Nghỉ & Light rain/snow & 11 & 11 & 2 & 12:00--12:59; 15:00--15:59 (ít mẫu) & Nhiều vãng lai (35,3\%; 32,8\%) \\ \hline
+\end{tabularx}
+\end{table}
+
+\noindent Ngoài hai nhóm ngày, người dùng có thể chọn \textbf{một hoặc nhiều thứ cụ thể} (ví dụ chỉ thứ sáu, hoặc thứ hai + thứ ba): hệ thống lấy các ngày thuộc các thứ đó \textit{không phải ngày lễ} (ngày lễ thuộc nhóm ngày nghỉ). Khi chọn từ hai thứ trở lên, có hai cách tính:
+\begin{itemize}
+    \item \textbf{Từng thứ riêng} (mặc định): mỗi thứ được lập một kế hoạch riêng (trung bình theo giờ của riêng thứ đó) và các kế hoạch được đặt cạnh nhau để so sánh - mỗi thứ có khung cao điểm, giờ phải chuẩn bị xong và nhóm khách của riêng nó (Hình~\ref{fig:dash-dss-compare}). Đây là cách phù hợp khi cần chuẩn bị cho nhiều ngày sắp tới, ví dụ thứ sáu và thứ bảy.
+    \item \textbf{Gộp thành một kế hoạch}: các ngày của mọi thứ đã chọn được gộp và lấy trung bình chung theo giờ. Cách này chỉ nên dùng khi các thứ có dạng nhu cầu giống nhau (ví dụ thứ hai + thứ ba, hoặc thứ bảy + chủ nhật) để có thêm dữ liệu, nhất là khi trời mưa hoặc sương mù. Nếu gộp lẫn ngày trong tuần với cuối tuần, kết quả là một đường ``trung bình'' không giống ngày nào (ví dụ thứ tư + thứ bảy: 8h thành Cao với 297 lượt/giờ, trong khi riêng thứ bảy 8h chỉ 125 lượt/giờ - mức Trung bình), nên giao diện hiện cảnh báo đề nghị chọn \textit{Từng thứ riêng}.
+\end{itemize}
+Trong dữ liệu, cả 21 ngày lễ đều rơi vào thứ hai đến thứ sáu (15 ngày vào thứ hai), nên điều kiện này chỉ có tác dụng với các ngày trong tuần; khi chọn thứ bảy, chủ nhật, giao diện không hiện ghi chú về ngày lễ. Chọn đủ thứ hai đến thứ sáu cho kết quả trùng với nhóm ``ngày làm việc'' (đã được kiểm thử), nên đây là cách tổng quát hóa của nhóm ngày. Ví dụ thứ hai + thứ ba, trời quang: 8 giờ Cao trong hai khung 07:00--09:59 và 16:00--20:59, đỉnh 17h (578 lượt/giờ), 13,5\% khách vãng lai (chủ yếu khách đăng ký). Mỗi thứ có khoảng 100 ngày lịch sử nên với trời quang mỗi giờ vẫn có 44--66 quan sát (đủ ngưỡng tin cậy 30); với sương mù hoặc mưa, nhiều giờ sẽ bị gắn cờ ít dữ liệu. Bảng~\ref{tab:weekdays} cho thấy việc chọn theo thứ giúp phát hiện khác biệt mà nhóm ``ngày làm việc'' che mất.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả DSS theo từng thứ trong tuần (trời quang, toàn bộ dữ liệu)}
+\label{tab:weekdays}
+\small
+\begin{tabularx}{\textwidth}{|l|c|c|c|c|X|}
+\hline
+\textbf{Thứ} & \textbf{Thấp} & \textbf{TB} & \textbf{Cao} & \textbf{Giờ đỉnh} & \textbf{Khung cảnh báo (chuẩn bị trước; nhóm khách, \% vãng lai)} \\ \hline
+Thứ hai & 6 & 10 & 8 & 17h (572) & 07:00--09:59 (06:00; đăng ký, 6,4\%); 16:00--20:59 (15:00; đăng ký, 12,1\%) \\ \hline
+Thứ ba & 6 & 10 & 8 & 17h (582) & 07:00--09:59; 16:00--20:59 (đăng ký) \\ \hline
+Thứ tư & 6 & 10 & 8 & 17h (595) & 07:00--09:59; 16:00--20:59 (đăng ký) \\ \hline
+Thứ năm & 6 & 10 & 8 & 17h (593) & 07:00--09:59; 16:00--20:59 (đăng ký) \\ \hline
+Thứ sáu & 6 & 6 & \textbf{12} & 17h (525) & 07:00--09:59 (06:00; đăng ký, 6,4\%); \textbf{12:00--20:59} (11:00; hỗn hợp, 19,1\%) \\ \hline
+Thứ bảy & 6 & 8 & 10 & 12h (429) & 10:00--19:59 (09:00; nhiều vãng lai, 36,6\%) \\ \hline
+Chủ nhật & 7 & 7 & 10 & 14h (387) & 10:00--19:59 (09:00; nhiều vãng lai, 34,9\%) \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -180,6 +222,8 @@ Nghỉ & Light rain/snow & 11 & 11 & 2 & 12:00--12:59; 15:00--15:59 (ít mẫu) 
     \item \textbf{Ngày làm việc} có hai khung cao điểm tách biệt, ứng với giờ đi làm và tan tầm; khung chiều dài hơn và cao hơn (đỉnh 574 lượt/giờ lúc 17h). Khung trưa 10--15h chỉ ở mức Trung bình: phù hợp để điều phối lại xe giữa hai đợt cao điểm.
     \item \textbf{Ngày nghỉ} có một khung cao điểm liền mạch 10--19h (nhu cầu giải trí), buổi sáng sớm ở mức Thấp: không cần chuẩn bị sớm như ngày làm việc.
     \item \textbf{Thời tiết}: trời sương mù chỉ làm giảm nhẹ (khung cảnh báo gần như giữ nguyên), nhưng mưa/tuyết nhẹ làm số giờ Cao giảm từ 8 xuống 3 (ngày làm việc) và từ 10 xuống 2 (ngày nghỉ). Dù vậy giờ 8h và 17--18h của ngày làm việc vẫn Cao khi mưa nhẹ: nhu cầu đi làm ít co giãn theo thời tiết.
+    \item \textbf{Nhóm khách}: cùng là mức Cao nhưng cần chuẩn bị khác nhau. Cao điểm ngày làm việc gần như toàn khách đăng ký (vãng lai chỉ 4--13\%): trọng tâm là đủ xe đúng giờ đi làm, tan tầm. Cao điểm ngày nghỉ có hơn 1/3 lượt thuê là khách vãng lai: cần thêm nhân sự hướng dẫn, hỗ trợ thanh toán cho khách mới.
+    \item \textbf{Theo thứ}: thứ hai đến thứ năm gần như giống nhau, nhưng \textbf{thứ sáu} có khung cao buổi chiều bắt đầu sớm từ 12h (cần chuẩn bị trước 11:00 thay vì 15:00) với tỷ lệ khách vãng lai cao hơn (hỗn hợp, 19,1\%); thứ bảy có nhu cầu đỉnh cao hơn chủ nhật (429 so với 387 lượt/giờ). Gộp chung ``ngày làm việc'' sẽ bỏ sót đặc điểm của thứ sáu.
     \item \textbf{Khung giờ thấp} (0--5h) ổn định ở mức Thấp trong mọi tình huống: thời điểm phù hợp để bảo trì, sạc, thu hồi xe hỏng.
 \end{itemize}
 
@@ -208,18 +252,48 @@ P33,3/P66,7, kỳ lịch sử 2012 & 98 & 284 & 8 & 07--09h; 16--20h \\ \hline
 Ngưỡng chặt hơn (P75) chỉ loại bớt giờ ``rìa'' của khung (9h và 20h), còn lõi cao điểm 7--8h và 16--19h không đổi. Khi chỉ dùng dữ liệu 2012 (nhu cầu cao hơn 2011 khoảng 65\%), ngưỡng tăng tương ứng nhưng các khung cảnh báo giữ nguyên. Kết luận: \textbf{các khung giờ ưu tiên là ổn định}, không phải hệ quả của việc chọn ngưỡng - tăng độ tin cậy của khuyến nghị.
 
 \sect{Giao diện DSS}\label{sec:dss-ui}
-Giao diện DSS nằm ở trang riêng ``Hỗ trợ quyết định'' của dashboard (\code{\#/dss}, Hình~\ref{fig:dash-dss-top}, \ref{fig:dash-dss-matrix}) và cho phép người dùng: chọn kỳ lịch sử bằng bộ lọc dropdown Năm/Mùa (trang này chỉ hiện hai bộ lọc đó); chọn \textbf{loại ngày sắp tới} và \textbf{thời tiết dự kiến}; chọn cấu hình ngưỡng. Hệ thống hiển thị bảng khảo sát phân phối, bảng quy tắc với tỷ lệ giờ quan sát mỗi mức, các thẻ cảnh báo, biểu đồ 24 giờ tô màu theo mức với hai đường ngưỡng, bảng chi tiết (nhu cầu, hệ số so với trung bình, số giờ quan sát, tỷ lệ người dùng đăng ký, mức, khuyến nghị) và ma trận phân loại toàn bộ.
+Giao diện DSS nằm ở trang riêng ``Hỗ trợ quyết định'' của dashboard (\code{\#/dss}, Hình~\ref{fig:dash-dss-top}--\ref{fig:dash-dss-matrix}). Trang được thiết kế cho \textbf{người vận hành} (không cần hiểu thống kê) theo luồng đánh số từng bước, đi từ câu hỏi tới hành động:
+\begin{enumerate}
+    \item \textbf{Chọn tình huống sắp tới}: hai nhóm nút bấm lớn có mô tả ngắn - loại ngày (Ngày làm việc / Ngày nghỉ, \textit{hoặc} một / nhiều thứ cụ thể bằng hàng nút T2 \ldots{} CN bấm bật / tắt, có nút bỏ chọn; khi chọn từ hai thứ có thêm lựa chọn \textit{Từng thứ riêng} / \textit{Gộp thành 1 kế hoạch}) và thời tiết dự báo (Quang đãng, Sương mù, Mưa nhẹ, Mưa lớn). Kỳ lịch sử lấy từ bộ lọc dropdown Năm/Mùa (trang này chỉ hiện hai bộ lọc đó) và được nhắc lại bằng chữ ngay dưới các nút.
+    \item \textbf{Kết luận}: một câu tóm tắt (ví dụ ``Có 2 khung giờ cao điểm. Cần chuẩn bị xong trước 06:00 và 15:00''), kèm số giờ ở mỗi mức, giờ đông nhất và nhãn nhóm khách của cả tình huống (ví dụ ``Nhiều khách vãng lai - 32,4\% lượt thuê, mức chung 18,8\%''). Khi tình huống hiếm gặp (đa số giờ không có hoặc có ít dữ liệu, như trời mưa lớn), hệ thống hiện cảnh báo \textit{không đủ dữ liệu để kết luận chắc chắn} thay vì đưa ra khuyến nghị gây hiểu nhầm.
+    \item \textbf{Việc cần làm}: mỗi khung cảnh báo là một thẻ với mốc thời gian \textit{hoàn tất trước} nổi bật, khung giờ cao điểm, giờ đỉnh và lượt thuê trung bình, cùng nhãn nhóm khách của khung (kèm \% vãng lai) và khuyến nghị loại hỗ trợ tương ứng (Hình~\ref{fig:dash-dss-weekend}).
+    \item \textbf{24 giờ trong ngày}: dải 24 ô tô màu theo mức để nhìn nhanh cả ngày, biểu đồ cột với hai đường ngưỡng, và ba thẻ giải thích ngưỡng cùng khuyến nghị của từng mức.
+    \item \textbf{Nhóm khách cần phục vụ} (Hình~\ref{fig:dash-dss-users}): biểu đồ cột chồng lượt thuê của khách đăng ký và vãng lai theo giờ, dải 24 ô tô màu theo nhóm khách, giải thích mốc phân nhóm (tính theo tỷ lệ chung của kỳ) và ba thẻ khuyến nghị theo nhóm khách.
+\end{enumerate}
+Ở chế độ \textit{Từng thứ riêng} (Hình~\ref{fig:dash-dss-compare}), các bước trên được trình bày dạng so sánh: mỗi thứ một thẻ kết luận; việc cần làm nhóm theo từng thứ; các dải 24 ô xếp chồng (mỗi thứ một hàng) cùng biểu đồ đường, mỗi đường là một thứ; dải nhóm khách cũng xếp theo từng thứ; phần chi tiết có bảng so sánh từng giờ giữa các thứ.
+Phần dành cho người phân tích được \textbf{thu gọn mặc định} (mở khi cần): bảng chi tiết từng giờ (nhu cầu, hệ số so với trung bình, số giờ quan sát, tỷ lệ khách vãng lai, nhóm khách, mức, khuyến nghị); giải thích cách xác định ngưỡng kèm bảng khảo sát phân phối và lựa chọn cách chia ngưỡng (phân tích độ nhạy); ma trận phân loại cho mọi tình huống.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth]{figures/dash_dss_top.jpg}
-\caption{Giao diện DSS: chọn tình huống, khảo sát phân phối, quy tắc, cảnh báo và biểu đồ mức nhu cầu}
+\includegraphics[width=0.85\textwidth]{figures/dash_dss_top.jpg}
+\caption{Giao diện DSS: chọn tình huống, kết luận, việc cần làm và mức nhu cầu 24 giờ (ngày làm việc, trời quang đãng)}
 \label{fig:dash-dss-top}
 \end{figure}
 
 \begin{figure}[H]
 \centering
+\includegraphics[width=0.9\textwidth]{figures/dash_dss_weekend.jpg}
+\caption{Giao diện DSS với tình huống ngày nghỉ, trời quang đãng: kết luận và việc cần làm kèm nhóm khách (nhiều khách vãng lai)}
+\label{fig:dash-dss-weekend}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.8\textwidth]{figures/dash_dss_compare.jpg}
+\caption{Giao diện DSS khi chọn thứ sáu và thứ bảy (chế độ \textit{Từng thứ riêng}): kết luận, việc cần làm và mức nhu cầu 24 giờ của từng thứ}
+\label{fig:dash-dss-compare}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{figures/dash_dss_users.jpg}
+\caption{Giao diện DSS: thành phần khách theo giờ và khuyến nghị theo nhóm khách (ngày nghỉ, trời quang đãng)}
+\label{fig:dash-dss-users}
+\end{figure}
+
+\begin{figure}[H]
+\centering
 \includegraphics[width=0.92\textwidth]{figures/dash_dss_matrix.jpg}
-\caption{Giao diện DSS: ma trận phân loại giờ $\times$ loại ngày $\times$ thời tiết}
+\caption{Giao diện DSS: ma trận phân loại giờ $\times$ loại ngày $\times$ thời tiết (phần chi tiết, mở khi cần)}
 \label{fig:dash-dss-matrix}
 \end{figure}

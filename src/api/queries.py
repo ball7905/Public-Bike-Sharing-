@@ -47,8 +47,8 @@ def where(filters: dict, extra=()):
         conds.append(f"{FILTERS[name][0]} = ANY(%s)")
         args.append(vals)
     for col, val in extra:               # col do code truyền vào, không phải input người dùng
-        conds.append(f"{col} = %s")
-        args.append(val)
+        conds.append(f"{col} = ANY(%s)" if isinstance(val, (list, tuple)) else f"{col} = %s")
+        args.append(list(val) if isinstance(val, (list, tuple)) else val)
     return ("WHERE " + " AND ".join(conds)) if conds else "", args
 
 

@@ -73,3 +73,52 @@ def test_matrix_shape():
     m = E.build_matrix(r, TH, 190, [CLEAR, {"key": 2, "name": "Mist"}])
     assert len(m["cols"]) == 4 and len(m["cells"]) == 24 * 4
     assert sum(1 for c in m["cells"] if c["level"] == "medium") == 24
+
+
+def test_user_segment_rules():
+    ref = 0.25                                           # tỷ lệ vãng lai chung của kỳ (số nhị phân chính xác)
+    assert E.segment(0.375, ref) == "casual"             # = 1,5 x ref: biên tính là vãng lai
+    assert E.segment(0.374, ref) == "mixed"
+    assert E.segment(0.1875, ref) == "registered"        # = 0,75 x ref: biên tính là đăng ký
+    assert E.segment(0.188, ref) == "mixed"
+    assert E.segment(None, ref) is None and E.segment(0.3, None) is None
+    assert all(E.SEGMENT_ADVICE[s] and E.SEGMENT_LABELS[s] for s in E.SEGMENTS)
+
+
+def test_alert_window_carries_user_mix():
+    vals = [10] * 7 + [300, 500, 250] + [150] * 14
+    r = rows(vals)
+    for x in r:                                          # khung 7-9h: 5% vãng lai, các giờ khác 40%
+        share = 0.05 if 7 <= x["hour"] <= 9 else 0.40
+        x["avg_casual"], x["avg_registered"] = x["avg_rentals"] * share, x["avg_rentals"] * (1 - share)
+    p = E.build_plan(r, TH, 190, "working", CLEAR, casual_ref=0.19)
+    a = p["alerts"][0]
+    assert abs(a["casual_share"] - 0.05) < 1e-9 and a["segment"] == "registered"
+    assert E.SEGMENT_ADVICE["registered"] in a["message"]
+    assert p["hours"][12]["segment"] == "casual" and p["hours"][8]["segment"] == "registered"
+    assert p["user_mix"]["reference_casual_share"] == 0.19
+    # không truyền mốc tham chiếu -> không phân nhóm, kết quả mức nhu cầu không đổi
+    q = E.build_plan(r, TH, 190, "working", CLEAR)
+    assert q["alerts"][0]["segment"] is None
+    assert [h["level"] for h in q["hours"]] == [h["level"] for h in p["hours"]]
+
+
+def test_plan_for_specific_weekday():
+    p = E.build_plan(rows([100] * 24), TH, 190, "working", CLEAR, day_of_week=6)
+    assert p["scenario"]["day_of_week"] == [6] and p["scenario"]["day_group_label"] == "Thứ bảy"
+    assert p["scenario"]["day_group"] == "non_working"          # T7 / CN suy ra là ngày nghỉ
+    assert E.build_plan(rows([100] * 24), TH, 190, "working", CLEAR, day_of_week=1)["scenario"]["day_group"] == "working"
+    assert E.build_plan(rows([100] * 24), TH, 190, "working", CLEAR)["scenario"]["day_of_week"] is None
+
+
+def test_plan_for_several_weekdays():
+    p = E.build_plan(rows([100] * 24), TH, 190, "working", CLEAR, day_of_week=[2, 1, 1])
+    assert p["scenario"]["day_of_week"] == [1, 2]                 # bỏ trùng, sắp T2 -> CN
+    assert p["scenario"]["day_group_label"] == "Thứ hai + Thứ ba"
+    assert p["scenario"]["day_group"] == "working"
+    assert E.normalize_weekdays([0, 6]) == [6, 0]                 # thứ bảy trước chủ nhật
+    assert E.build_plan(rows([100] * 24), TH, 190, "working", CLEAR, day_of_week=[0, 6])["scenario"]["day_group"] == "non_working"
+    assert E.build_plan(rows([100] * 24), TH, 190, "working", CLEAR, day_of_week=[5, 6])["scenario"]["day_group"] is None
+    for bad in ([], [7], [-1, 2]):
+        with pytest.raises(ValueError):
+            E.normalize_weekdays(bad)

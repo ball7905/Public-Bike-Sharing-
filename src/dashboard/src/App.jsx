@@ -96,7 +96,7 @@ export default function App() {
             <ClimateChart filters={filters} />
           </>)}
           {page === 'pivot' && <PivotTable filters={filters} />}
-          {page === 'dss' && <DssPanel filters={filters} />}
+          {page === 'dss' && <DssPanel filters={filters} options={options} />}
         </div>
       </div>
     </div>

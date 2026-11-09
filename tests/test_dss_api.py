@@ -61,3 +61,50 @@ def test_dss_validation_errors():
     assert c.get("/api/dss/plan", params={"day_group": "holiday"}).status_code == 422
     assert c.get("/api/dss/thresholds", params={"q_low": 0.8, "q_high": 0.5}).status_code == 422
     assert c.get("/api/dss/thresholds", params={"year": 1999}).status_code == 422
+
+
+def test_user_mix_matches_source():
+    ref = HOUR["casual"].sum() / HOUR["cnt"].sum()
+    t = c.get("/api/dss/thresholds").json()
+    assert abs(t["casual_share"] - ref) < 1e-9
+    w = c.get("/api/dss/plan", params={"day_group": "working", "weather": 1}).json()
+    src = HOUR[(HOUR.workingday == 1) & (HOUR.weathersit == 1)].groupby("hr")[["casual", "cnt"]].mean()
+    for h in w["hours"]:
+        assert abs(h["casual_share"] - src.loc[h["hour"], "casual"] / src.loc[h["hour"], "cnt"]) < 1e-9
+    # giờ đi làm: chủ yếu khách đăng ký; trưa ngày nghỉ: nhiều khách vãng lai
+    assert all(a["segment"] == "registered" for a in w["alerts"])
+    n = c.get("/api/dss/plan", params={"day_group": "non_working", "weather": 1}).json()
+    assert n["alerts"] and all(a["segment"] == "casual" for a in n["alerts"])
+    assert n["user_mix"]["scenario_casual_share"] > ref > w["user_mix"]["scenario_casual_share"]
+
+
+def test_plan_for_specific_weekday_matches_source():
+    for dow in (1, 5, 6):                    # thứ hai, thứ sáu, thứ bảy (mã nguồn: 0 = Chủ nhật)
+        p = c.get("/api/dss/plan", params={"day_of_week": dow, "weather": 1}).json()
+        sel = HOUR[(HOUR.weekday == dow) & (HOUR.holiday == 0) & (HOUR.weathersit == 1)]
+        src = sel.groupby("hr")["cnt"].agg(["mean", "size"])
+        for h in p["hours"]:
+            assert abs(h["avg_rentals"] - src.loc[h["hour"], "mean"]) < 1e-6
+            assert h["n_obs"] == src.loc[h["hour"], "size"]
+    fri = c.get("/api/dss/plan", params={"day_of_week": 5, "weather": 1}).json()
+    assert fri["scenario"]["day_group_label"] == "Thứ sáu"
+    assert any(a["start_hour"] <= 12 and a["end_hour"] >= 17 for a in fri["alerts"])   # chiều thứ sáu cao kéo dài
+    sat = c.get("/api/dss/plan", params={"day_of_week": 6, "weather": 1}).json()
+    assert not any(a["start_hour"] <= 8 <= a["end_hour"] for a in sat["alerts"])       # thứ bảy không có cao điểm 8h
+    assert c.get("/api/dss/plan", params={"day_of_week": 7}).status_code == 422
+
+
+def test_plan_for_several_weekdays_matches_source():
+    p = c.get("/api/dss/plan", params={"day_of_week": "2,1", "weather": 1}).json()
+    sel = HOUR[HOUR.weekday.isin([1, 2]) & (HOUR.holiday == 0) & (HOUR.weathersit == 1)]
+    src = sel.groupby("hr")["cnt"].agg(["mean", "size"])
+    assert p["scenario"]["day_group_label"] == "Thứ hai + Thứ ba" and p["scenario"]["day_of_week"] == [1, 2]
+    for h in p["hours"]:
+        assert abs(h["avg_rentals"] - src.loc[h["hour"], "mean"]) < 1e-6
+        assert h["n_obs"] == src.loc[h["hour"], "size"]
+    # chọn đủ T2 -> T6 phải trùng nhóm "ngày làm việc" (ngày làm việc = T2-T6 không phải lễ)
+    wk = c.get("/api/dss/plan", params={"day_of_week": "1,2,3,4,5", "weather": 1}).json()
+    grp = c.get("/api/dss/plan", params={"day_group": "working", "weather": 1}).json()
+    assert [h["n_obs"] for h in wk["hours"]] == [h["n_obs"] for h in grp["hours"]]
+    for bad in ("1,,2", "1,8", "a"):
+        assert c.get("/api/dss/plan", params={"day_of_week": bad}).status_code == 422

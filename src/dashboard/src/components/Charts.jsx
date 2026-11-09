@@ -89,3 +89,53 @@ export function UserChart({ filters }) {
     </section>
   )
 }
+
+// FR06 / Nhóm 2: ảnh hưởng của nhiệt độ và độ ẩm
+const CORR_LABELS = { temp: 'Nhiệt độ', atemp: 'Nhiệt độ cảm nhận', humidity: 'Độ ẩm', windspeed: 'Tốc độ gió' }
+const r3 = (v) => (v === null || v === undefined ? '—' : v.toFixed(3))
+
+export function ClimateChart({ filters }) {
+  const [by, setBy] = useState('temp')
+  const [data, setData] = useState(null)
+  useEffect(() => { get('climate', { ...filters, by }).then(setData).catch(() => setData(null)) }, [by, JSON.stringify(filters)]) // eslint-disable-line
+  const c = data?.correlation
+  return (
+    <section className="card">
+      <h3>Ảnh hưởng của nhiệt độ và độ ẩm đến nhu cầu
+        <select value={by} onChange={(e) => setBy(e.target.value)}>
+          <option value="temp">Theo nhiệt độ (°C)</option><option value="humidity">Theo độ ẩm (%)</option>
+        </select>
+      </h3>
+      <div className="climate">
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={data?.bins || []}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="label" interval={0} fontSize={12} />
+            <YAxis width={84} tickFormatter={(v) => fmt(v)} />
+            <Tooltip formatter={(v) => fmt(v, 1)}
+              labelFormatter={(l, p) => `${l} (${fmt(p?.[0]?.payload?.n_hours)} giờ quan sát${p?.[0]?.payload?.reliable === false ? ', ít mẫu' : ''})`} />
+            <Legend />
+            <Bar dataKey="avg_registered" name="Đăng ký (TB / giờ)" stackId="u" fill="#2563eb" />
+            <Bar dataKey="avg_casual" name="Vãng lai (TB / giờ)" stackId="u" fill="#f59e0b" />
+          </BarChart>
+        </ResponsiveContainer>
+        {c && (
+          <div>
+            <table>
+              <thead><tr><th>Hệ số tương quan Pearson với lượt thuê</th><th>Mức giờ</th><th>Mức ngày</th></tr></thead>
+              <tbody>{Object.keys(CORR_LABELS).map((k) => (
+                <tr key={k}><th>{CORR_LABELS[k]}</th><td>{r3(c.hourly[k])}</td><td>{r3(c.daily[k])}</td></tr>))}
+                <tr><th>Số quan sát</th><td>{fmt(c.hourly.n)} giờ</td><td>{fmt(c.daily.n)} ngày</td></tr>
+              </tbody>
+            </table>
+            <p className="note">
+              Mức ngày dùng tổng lượt thuê / ngày và giá trị thời tiết trung bình ngày, giúp loại bớt ảnh hưởng của giờ trong ngày
+              (ban đêm vừa ẩm hơn vừa ít người thuê). Tương quan không phải quan hệ nhân quả.
+              {data.bins.some((b) => !b.reliable) && ` Khoảng có dưới ${data.min_obs} giờ quan sát không đủ tin cậy (vd. độ ẩm 0–10% chủ yếu là lỗi đo hum = 0).`}
+            </p>
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}

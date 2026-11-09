@@ -1,0 +1,90 @@
+% ==================== CHƯƠNG 10 ====================
+\newpage
+\chap{Kiểm thử và đánh giá}\label{sec:eval}
+
+\sect{Kiểm thử tự động}
+Bộ kiểm thử dùng \code{pytest} và \code{FastAPI TestClient}, chạy bằng \code{python -m pytest tests -q}. Điểm chính: các kiểm thử không chỉ kiểm tra API ``chạy được'' mà \textbf{đối chiếu kết quả với dữ liệu nguồn} được tính độc lập bằng Pandas từ \code{hour.csv}. Kết quả lần chạy cuối: \textbf{33/33 kiểm thử đạt}.
+
+\begin{table}[H]
+\centering
+\caption{Các bộ kiểm thử tự động}
+\label{tab:tests}
+\small
+\begin{tabularx}{\textwidth}{|l|c|X|}
+\hline
+\textbf{Tệp} & \textbf{Số test} & \textbf{Nội dung kiểm tra} \\ \hline
+\code{test\_etl.py} & 9 & (Không cần CSDL) bước Transform trên dữ liệu nguồn thật: số dòng các bảng; tổng lượt thuê được bảo toàn; khóa ngoại của fact tồn tại trong chiều, không trùng (ngày, giờ); \code{hours\_recorded} (ngày 29/10/2012 chỉ có 1 giờ); 22 dòng \code{hum = 0} thành NULL; thứ trong tuần khớp nguồn; từ chối dữ liệu ngoài miền và lịch không nhất quán; loại dòng vi phạm tổng \\ \hline
+\code{test\_api.py} & 8 & KPI khớp tổng nguồn; roll-up nhất quán (tổng các quý = tổng năm); drill-down tới ngày, giờ; slice/dice thu hẹp đúng; tổng pivot = tổng toàn bộ; lỗi tham số trả về 422; chuỗi SQL injection vô hại \\ \hline
+\code{test\_climate.py} & 4 & Số giờ, trung bình mỗi khoảng nhiệt độ và độ ẩm khớp Pandas; tổng số giờ các khoảng nhiệt độ = 17.379, độ ẩm = 17.357 (loại 22 giờ NULL, không bị dồn vào khoảng 90--100\%); cờ ít mẫu đúng; hệ số tương quan khớp Pandas; bộ lọc có hiệu lực \\ \hline
+\code{test\_dss\_engine.py} & 7 & (Không cần CSDL) biên phân loại (bằng ngưỡng là Trung bình); ngưỡng không hợp lệ bị từ chối; mỗi mức có khuyến nghị; kế hoạch đủ 24 giờ, mỗi giờ đúng một mức; danh sách ưu tiên giảm dần; gộp khung cảnh báo, giờ chuẩn bị qua nửa đêm; xử lý nhóm thiếu/ít dữ liệu \\ \hline
+\code{test\_dss\_api.py} & 5 & Ngưỡng khớp phân vị tính bằng Pandas; mỗi mức chiếm 30--37\% giờ quan sát; trung bình nhóm khớp nguồn; giờ 8h và 17h ngày làm việc được cảnh báo; ngưỡng thay đổi theo kỳ lịch sử; bộ lọc ngoài kỳ không ảnh hưởng DSS; mức thời tiết 4 bị gắn cờ; lỗi tham số trả về 422 \\ \hline
+\end{tabularx}
+\end{table}
+Ngoài ra, quy trình ETL tự đối chiếu 13 tiêu chí với cả hai tệp nguồn (Bảng~\ref{tab:etl-validate}), và các truy vấn trong \code{sql/03\_olap\_queries.sql}, \code{sql/04\_dss\_queries.sql} đã được chạy thử trên kho.
+
+\sect{Hiệu năng}
+Thời gian phản hồi được đo bằng cách gọi mỗi endpoint 10 lần trên máy cá nhân (Windows 11, PostgreSQL cục bộ). Số đo bao gồm cả việc mở kết nối CSDL mới cho mỗi yêu cầu.
+
+\begin{table}[H]
+\centering
+\caption{Thời gian phản hồi của API (ms)}
+\label{tab:perf}
+\begin{tabular}{|l|r|r|}
+\hline
+\textbf{Yêu cầu} & \textbf{Trung vị} & \textbf{Lớn nhất} \\ \hline
+\code{/api/kpis} (toàn bộ dữ liệu) & 77 & 197 \\ \hline
+\code{/api/kpis} (dice: 2012, hè+thu, ngày làm việc) & 57 & 183 \\ \hline
+\code{/api/olap/drill} (tháng của 2012) & 54 & 185 \\ \hline
+\code{/api/olap/pivot} (tháng $\times$ thời tiết) & 54 & 155 \\ \hline
+\code{/api/hourly} & 52 & 176 \\ \hline
+\code{/api/climate} & 105 & 227 \\ \hline
+\code{/api/dss/plan} & 68 & 88 \\ \hline
+\code{/api/dss/matrix} & 71 & 175 \\ \hline
+\end{tabular}
+\end{table}
+Mọi yêu cầu đều dưới 0,25 giây, đáp ứng NFR03 (mục tiêu dưới 1 giây).
+
+\sect{Đánh giá mức độ đáp ứng yêu cầu}
+\begin{table}[H]
+\centering
+\caption{Đánh giá yêu cầu chức năng}
+\label{tab:fr-eval}
+\small
+\begin{tabularx}{\textwidth}{|c|c|X|}
+\hline
+\textbf{Mã} & \textbf{Mức đáp ứng} & \textbf{Bằng chứng} \\ \hline
+FR01 & Đạt & \code{extract.py} đọc hai tệp CSV \\ \hline
+FR02 & Đạt & \code{clean()}: thiếu, trùng, kiểu, miền giá trị, ràng buộc tổng (mục~\ref{sec:etl}) \\ \hline
+FR03 & Đạt & Star Schema 1 fact, 3 dimension (Hình~\ref{fig:star}) \\ \hline
+FR04 & Đạt & ETL một lệnh, giao dịch, 13/13 phép đối chiếu PASS \\ \hline
+FR05 & Đạt & Drill-down năm $\rightarrow$ giờ, tổng hợp theo mùa, tháng, thứ \\ \hline
+FR06 & Đạt & Thời tiết, nhiệt độ, độ ẩm, loại ngày, nhóm người dùng \\ \hline
+FR07 & Đạt & Roll-up, drill-down, slice, dice, pivot (SQL và giao diện) \\ \hline
+FR08 & Đạt & 8 KPI, biểu đồ drill-down, 5 biểu đồ phân tích, bảng pivot, bộ lọc dùng chung \\ \hline
+FR09 & Đạt & Phân loại 3 mức theo ngưỡng phân vị khảo sát từ dữ liệu \\ \hline
+FR10 & Đạt & Khuyến nghị theo mức, khung cảnh báo, danh sách ưu tiên \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Đánh giá yêu cầu phi chức năng}
+\label{tab:nfr-eval}
+\small
+\begin{tabularx}{\textwidth}{|c|c|X|}
+\hline
+\textbf{Mã} & \textbf{Mức đáp ứng} & \textbf{Nhận xét} \\ \hline
+NFR01 & Đạt & Đối chiếu ETL và kiểm thử khớp nguồn đến từng ngày, từng nhóm \\ \hline
+NFR02 & Đạt & PK, FK, CHECK, UNIQUE; 0 dòng mồ côi \\ \hline
+NFR03 & Đạt & Mọi yêu cầu dưới 0,25 giây (Bảng~\ref{tab:perf}) \\ \hline
+NFR04 & Đạt một phần & Thêm chiều, thêm thuộc tính dễ dàng nhờ Star Schema và view; nhưng ETL hiện nạp lại toàn bộ, chưa nạp tăng dần \\ \hline
+NFR05 & Đạt & ETL, SQL, API, DSS, giao diện là các module riêng \\ \hline
+NFR06 & Đạt & Bộ lọc chip áp dụng cho mọi biểu đồ, chú thích độ tin cậy; chưa khảo sát người dùng thật \\ \hline
+NFR07 & Đạt & Mô hình DSS kiểm thử và bước Transform kiểm thử không cần CSDL; 33 kiểm thử tự động \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Đánh giá thành phần DSS}
+\textbf{Điểm mạnh}: mô hình minh bạch, giải thích được (người vận hành hiểu vì sao một giờ là ``Cao''); ngưỡng xuất phát từ khảo sát phân phối và có thể điều chỉnh; kết quả ổn định khi thay đổi ngưỡng và kỳ lịch sử (mục~\ref{sec:dss-sensitivity}); trung thực về độ tin cậy khi dữ liệu thưa; tích hợp trực tiếp với kho dữ liệu nên tự cập nhật khi nạp dữ liệu mới.
+
+\textbf{Hạn chế}: mô hình là mô hình tra cứu theo nhóm (trung bình lịch sử), chưa phải mô hình dự báo, nên không phản ánh xu hướng tăng trưởng trong kỳ và không xét đồng thời nhiệt độ, độ ẩm; chưa được đánh giá bằng dữ liệu ngoài mẫu (ví dụ dùng 2011 xác định mức, kiểm tra trên 2012); khuyến nghị dừng ở mức độ, chưa có số xe cụ thể.

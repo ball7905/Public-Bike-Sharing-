@@ -1,0 +1,105 @@
+% ==================== CHƯƠNG 3 ====================
+\newpage
+\chap{Phân tích yêu cầu nghiệp vụ}\label{sec:requirements}
+
+\sect{Bài toán nghiệp vụ}
+Đơn vị vận hành hệ thống xe đạp công cộng cần nắm được xu hướng sử dụng xe để \textbf{lập kế hoạch chuẩn bị nguồn lực} (số xe đặt sẵn, nhân sự điều phối, lịch bảo trì) phù hợp với nhu cầu thực tế. Quyết định này được đưa ra \textbf{lặp lại hằng ngày} (lập kế hoạch cho ngày mai, cho tuần tới) và mang tính \textbf{bán cấu trúc}: có phần định lượng (nhu cầu lịch sử theo giờ, thời tiết) nhưng vẫn cần phán đoán của người vận hành (sự kiện đặc biệt, nguồn lực sẵn có). Đây là loại bài toán phù hợp với DSS (mục~\ref{sec:theory-dss}).
+
+\subsect{Các bên liên quan}
+\begin{table}[H]
+\centering
+\caption{Các bên liên quan và nhu cầu thông tin}
+\begin{tabularx}{\textwidth}{|p{3.8cm}|X|}
+\hline
+\textbf{Bên liên quan} & \textbf{Nhu cầu} \\ \hline
+Quản lý vận hành & Kế hoạch chuẩn bị xe, nhân sự theo khung giờ; cảnh báo giờ cao điểm \\ \hline
+Bộ phận điều phối / bảo trì & Biết khung giờ thấp điểm để bảo trì, thu hồi xe hỏng mà không ảnh hưởng dịch vụ \\ \hline
+Bộ phận kinh doanh, marketing & Hiểu hành vi người dùng đăng ký và vãng lai, mùa vụ để thiết kế gói thuê, khuyến mãi \\ \hline
+Nhà quản lý đô thị & Xu hướng nhu cầu theo thời gian và thời tiết để quy hoạch mở rộng \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Câu hỏi nghiệp vụ}\label{sec:questions}
+Hệ thống phải trả lời được các câu hỏi sau (kết quả trả lời ở mục~\ref{sec:results}):
+
+\noindent\textbf{Nhóm 1 - Phân tích nhu cầu sử dụng}
+\begin{enumerate}[label=Q1.\arabic*]
+    \item Tổng số lượt thuê xe trong một khoảng thời gian là bao nhiêu?
+    \item Khung giờ nào có nhu cầu cao nhất và thấp nhất?
+    \item Nhu cầu giữa các ngày trong tuần có khác biệt không?
+    \item Nhu cầu thay đổi như thế nào giữa các mùa và các tháng?
+    \item Tỷ lệ sử dụng của người dùng đăng ký và không đăng ký là bao nhiêu?
+\end{enumerate}
+\noindent\textbf{Nhóm 2 - Phân tích ảnh hưởng của các yếu tố}
+\begin{enumerate}[label=Q2.\arabic*]
+    \item Điều kiện thời tiết ảnh hưởng như thế nào đến số lượt thuê?
+    \item Nhiệt độ và độ ẩm có mối liên hệ như thế nào với nhu cầu?
+    \item Nhu cầu vào ngày làm việc khác ngày nghỉ như thế nào?
+    \item Khung giờ nào thường có nhu cầu cao trong ngày làm việc?
+\end{enumerate}
+\noindent\textbf{Nhóm 3 - Hỗ trợ ra quyết định}
+\begin{enumerate}[label=Q3.\arabic*]
+    \item Những khung giờ nào cần được ưu tiên chuẩn bị xe?
+    \item Mức nhu cầu trong một khung giờ cụ thể là thấp, trung bình hay cao?
+    \item Dựa trên lịch sử, nên chuẩn bị nguồn lực thế nào cho những khung giờ sắp tới?
+    \item Khi nhu cầu dự kiến tăng cao, hệ thống đưa ra cảnh báo và khuyến nghị gì?
+\end{enumerate}
+
+\sect{Yêu cầu chức năng}
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng}
+\label{tab:fr}
+\begin{tabularx}{\textwidth}{|c|p{3.6cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Chức năng} & \textbf{Mô tả} \\ \hline
+FR01 & Tiếp nhận dữ liệu & Đọc dữ liệu thuê xe từ các tệp CSV nguồn. \\ \hline
+FR02 & Tiền xử lý dữ liệu & Kiểm tra dữ liệu thiếu, trùng lặp, kiểu dữ liệu và tính hợp lệ của giá trị. \\ \hline
+FR03 & Xây dựng kho dữ liệu & Lưu trữ dữ liệu theo mô hình đa chiều Star Schema. \\ \hline
+FR04 & ETL & Trích xuất, biến đổi và nạp dữ liệu vào kho. \\ \hline
+FR05 & Phân tích theo thời gian & Tổng hợp lượt thuê theo giờ, ngày, tháng, năm và mùa. \\ \hline
+FR06 & Phân tích theo điều kiện & Phân tích nhu cầu theo thời tiết, nhiệt độ, độ ẩm, loại ngày và nhóm người dùng. \\ \hline
+FR07 & Truy vấn OLAP & Hỗ trợ Roll-up, Drill-down, Slice, Dice và Pivot. \\ \hline
+FR08 & Dashboard & Hiển thị KPI, biểu đồ và các chỉ số phân tích. \\ \hline
+FR09 & Phân loại nhu cầu & Phân loại mức nhu cầu thành Thấp, Trung bình, Cao. \\ \hline
+FR10 & Khuyến nghị & Đề xuất mức chuẩn bị xe và cảnh báo dựa trên dữ liệu lịch sử. \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Yêu cầu phi chức năng}
+\begin{table}[H]
+\centering
+\caption{Yêu cầu phi chức năng}
+\label{tab:nfr}
+\begin{tabularx}{\textwidth}{|c|p{3.4cm}|X|}
+\hline
+\textbf{Mã} & \textbf{Yêu cầu} & \textbf{Mô tả} \\ \hline
+NFR01 & Tính chính xác & Kết quả tổng hợp nhất quán với dữ liệu nguồn và quy tắc tính toán. \\ \hline
+NFR02 & Tính toàn vẹn & Đảm bảo khóa chính, khóa ngoại và ràng buộc dữ liệu trong kho. \\ \hline
+NFR03 & Hiệu năng & Truy vấn phân tích và dashboard phản hồi trong thời gian hợp lý (mục tiêu dưới 1 giây mỗi yêu cầu) với quy mô dữ liệu của đề tài. \\ \hline
+NFR04 & Khả năng mở rộng & Cho phép bổ sung dữ liệu mới và chiều phân tích trong tương lai. \\ \hline
+NFR05 & Khả năng bảo trì & Mã ETL, SQL, DSS và giao diện được tổ chức thành các module riêng. \\ \hline
+NFR06 & Tính dễ sử dụng & Dashboard bố cục rõ ràng, biểu đồ dễ hiểu, lọc dữ liệu thuận tiện. \\ \hline
+NFR07 & Khả năng kiểm thử & ETL, truy vấn phân tích và DSS có thể kiểm tra độc lập. \\ \hline
+\end{tabularx}
+\end{table}
+
+\sect{Các chỉ số phân tích chính (KPI)}
+\begin{table}[H]
+\centering
+\caption{Định nghĩa các KPI}
+\label{tab:kpi-def}
+\begin{tabularx}{\textwidth}{|p{4.4cm}|X|}
+\hline
+\textbf{KPI} & \textbf{Định nghĩa / cách tính} \\ \hline
+Total Rentals & $\sum$ \code{total\_cnt} trong phạm vi lọc. \\ \hline
+Average Hourly Rentals & $\text{AVG}(\code{total\_cnt})$ trên các giờ có bản ghi. \\ \hline
+Peak Hour & Giờ trong ngày (0--23) có lượt thuê trung bình/giờ cao nhất. \\ \hline
+Lowest Demand Hour & Giờ trong ngày có lượt thuê trung bình/giờ thấp nhất. \\ \hline
+Registered User Ratio & $\sum$ \code{registered\_cnt} / $\sum$ \code{total\_cnt}. \\ \hline
+Casual User Ratio & $\sum$ \code{casual\_cnt} / $\sum$ \code{total\_cnt}. \\ \hline
+Working Day Demand & Tổng lượt thuê ngày làm việc / số ngày làm việc (trung bình mỗi ngày). \\ \hline
+Non-working Day Demand & Tổng lượt thuê ngày nghỉ (cuối tuần, lễ) / số ngày nghỉ. \\ \hline
+\end{tabularx}
+\end{table}
+Hai KPI theo loại ngày được tính \textbf{trung bình mỗi ngày} chứ không phải tổng, vì số ngày làm việc (500) gấp hơn hai lần số ngày nghỉ (231); so sánh tổng sẽ gây hiểu nhầm.

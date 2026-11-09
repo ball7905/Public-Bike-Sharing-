@@ -1,0 +1,92 @@
+% ==================== TRANG BÌA (theo template HCMUT / Big Data CO3137) ====================
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture, overlay]
+  % khung ngoài mảnh và khung xanh đậm hai lớp
+  \draw[gray!60, line width=0.4pt]
+    ($(current page.north west)+(1.2cm,-1.2cm)$) rectangle ($(current page.south east)+(-1.2cm,1.2cm)$);
+  \draw[blue!70!black, line width=3pt]
+    ($(current page.north west)+(1.5cm,-1.5cm)$) rectangle ($(current page.south east)+(-1.5cm,1.5cm)$);
+  \draw[blue!70!black, line width=0.8pt]
+    ($(current page.north west)+(1.75cm,-1.75cm)$) rectangle ($(current page.south east)+(-1.75cm,1.75cm)$);
+\end{tikzpicture}
+
+\begin{center}
+\linespread{1.15}\selectfont
+\vspace*{1.2cm}
+{\small\textbf{VIETNAM NATIONAL UNIVERSITY - HCMC}}\\
+{\small\textbf{HO CHI MINH CITY UNIVERSITY OF TECHNOLOGY}}\\
+{\small\textbf{FACULTY OF COMPUTER SCIENCE AND ENGINEERING}}\\[0.8cm]
+
+\includegraphics[width=6.5cm]{figures/hcmut.png}\\[0.4cm]
+
+{\large\textbf{BÁO CÁO BÀI TẬP LỚN}}\\[0.1cm]
+{\large\textbf{Kho dữ liệu và Hệ hỗ trợ Quyết định (CO4031)}}\\[0.5cm]
+
+\rule{0.75\textwidth}{0.6pt}\\[0.5cm]
+{\Large\textbf{XÂY DỰNG KHO DỮ LIỆU VÀ HỆ HỖ TRỢ\\[2pt] QUYẾT ĐỊNH CHUẨN BỊ XE CHO HỆ THỐNG\\[2pt] XE ĐẠP CÔNG CỘNG (BIKE SHARING)}}\\[0.3cm]
+\rule{0.75\textwidth}{0.6pt}\\[0.5cm]
+
+{\normalsize\textbf{LỚP \todo{L0x} -- ĐỖ THANH THÁI -- HK 261}}\\[0.3cm]
+
+{\small
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{|c|l|c|}
+\hline
+\textbf{STT} & \textbf{HỌ VÀ TÊN} & \textbf{MSSV} \\ \hline
+1 & Trần Gia Bảo Anh (Nhóm trưởng) & 2310148 \\ \hline
+2 & Nguyễn Tiến Bách & 2310201 \\ \hline
+3 & Nguyễn Tăng Vũ & \todo{MSSV} \\ \hline
+\end{tabular}}\\[0.4cm]
+
+{\footnotesize
+\begin{tabular}{rl}
+\textbf{Mã nguồn:} & \repoURL \\
+\textbf{Video thuyết trình:} & \videoURL \\
+\end{tabular}}
+
+\vfill
+{\footnotesize Hồ Chí Minh City - 2026}
+\vspace*{0.6cm}
+\end{center}
+\end{titlepage}
+
+% ==================== MỤC LỤC & DANH MỤC ====================
+\setcounter{page}{1}
+\tableofcontents
+\newpage
+\listoffigures
+\listoftables
+\newpage
+
+% ==================== BẢNG THÀNH VIÊN ====================
+\section*{Danh sách thành viên và nhiệm vụ}
+\addcontentsline{toc}{section}{Danh sách thành viên và nhiệm vụ}
+% TODO nhóm: chỉnh lại phân công và tỷ lệ đóng góp cho đúng thực tế (đề yêu cầu mỗi thành viên có vai trò rõ ràng, có peer review)
+\begin{table}[H]
+    \centering
+    \renewcommand{\arraystretch}{1.4}
+    \begin{tabularx}{\textwidth}{|c|p{3.4cm}|c|X|c|}
+        \hline
+        \textbf{STT} & \textbf{Họ và tên} & \textbf{MSSV} & \textbf{Nhiệm vụ} & \textbf{Hoàn thành} \\
+        \hline
+        1 & Trần Gia Bảo Anh (Trưởng nhóm) & 2310148 & \todo{Phân tích yêu cầu, thiết kế kho dữ liệu (Star Schema), quy trình ETL và đối chiếu dữ liệu} & 100\% \\
+        \hline
+        2 & Nguyễn Tiến Bách & 2310201 & \todo{Truy vấn OLAP, API (FastAPI), thành phần DSS, kiểm thử} & 100\% \\
+        \hline
+        3 & Nguyễn Tăng Vũ & \todo{MSSV} & \todo{Dashboard (React), trực quan hóa, báo cáo và slide} & 100\% \\
+        \hline
+    \end{tabularx}
+    \caption{Danh sách thành viên và nhiệm vụ}
+\end{table}
+
+\noindent Hình thức thuyết trình: \todo{Trực tiếp (buổi ...) / Video}. Thành phần nộp kèm báo cáo (mục 5.1 của quy định): mã nguồn trong thư mục \code{src/} và \code{sql/}, dữ liệu trong \code{data/} (cùng kho GitHub ở trang bìa), slide thuyết trình (PDF) và link video (nếu có).
+
+% ==================== LỜI MỞ ĐẦU ====================
+\section*{Lời mở đầu}
+\addcontentsline{toc}{section}{Lời mở đầu}
+Xe đạp công cộng (bike sharing) là một mắt xích quan trọng của giao thông đô thị xanh: giảm ùn tắc, giảm phát thải và giải quyết bài toán ``chặng cuối'' giữa nhà, trạm xe buýt và nơi làm việc. Tuy nhiên nhu cầu thuê xe biến động rất mạnh theo giờ trong ngày, loại ngày, mùa và thời tiết. Nếu đơn vị vận hành không nắm được quy luật đó, xe sẽ thiếu vào giờ cao điểm và dư thừa, nằm chờ vào những khung giờ vắng khách.
+
+Dữ liệu lịch sử của hệ thống thuê xe chứa sẵn các quy luật này, nhưng ở dạng tệp giao dịch theo giờ thì khó khai thác trực tiếp cho người ra quyết định. Bài tập lớn này vận dụng kiến thức môn Kho dữ liệu và Hệ hỗ trợ Quyết định để: (1) tổ chức dữ liệu thuê xe Capital Bikeshare (Washington, D.C., 2011--2012) thành một kho dữ liệu theo mô hình Star Schema bằng quy trình ETL có kiểm chứng; (2) cung cấp các phép phân tích OLAP và dashboard trực quan; (3) xây dựng một thành phần DSS phân loại mức nhu cầu theo giờ thành Thấp / Trung bình / Cao và đưa ra khuyến nghị, cảnh báo chuẩn bị xe cho tình huống sắp tới.
+
+Báo cáo trình bày toàn bộ quá trình: từ cơ sở lý thuyết, phân tích yêu cầu nghiệp vụ, thiết kế và hiện thực kho dữ liệu, xây dựng DSS, đến kiểm thử, đánh giá kết quả, hạn chế và hướng phát triển.

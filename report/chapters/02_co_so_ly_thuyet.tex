@@ -1,0 +1,112 @@
+% ==================== CHƯƠNG 2 ====================
+\newpage
+\chap{Cơ sở lý thuyết}\label{sec:theory}
+
+\sect{Kho dữ liệu}\label{sec:theory-dw}
+Theo Inmon~\cite{inmon}, kho dữ liệu là một tập hợp dữ liệu \textbf{hướng chủ đề} (subject-oriented), \textbf{tích hợp} (integrated), \textbf{gắn với thời gian} (time-variant) và \textbf{không biến động} (non-volatile), dùng để hỗ trợ quá trình ra quyết định của nhà quản lý. Trong đề tài:
+\begin{itemize}
+    \item \textit{Hướng chủ đề}: kho tổ chức quanh một chủ đề duy nhất là \textbf{hoạt động thuê xe}, không chứa dữ liệu tác nghiệp như tài khoản, thanh toán.
+    \item \textit{Tích hợp}: mã hóa của nguồn (mùa 1--4, thời tiết 1--4, cờ 0/1) được chuyển thành tên có nghĩa; thuộc tính thời tiết chuẩn hóa được quy đổi về đơn vị đo thực; dữ liệu được đối chiếu chéo giữa hai tệp nguồn \code{hour.csv} và \code{day.csv}.
+    \item \textit{Gắn với thời gian}: mọi bản ghi sự kiện gắn với một ngày và một giờ; chiều thời gian là trục phân tích chính.
+    \item \textit{Không biến động}: kho chỉ được nạp bằng ETL và chỉ được đọc khi phân tích (kết nối của API được đặt ở chế độ \code{readonly}).
+\end{itemize}
+Kimball~\cite{kimball} nhấn mạnh cách tiếp cận \textbf{mô hình đa chiều} (dimensional modeling) để kho dữ liệu dễ hiểu với người dùng nghiệp vụ và truy vấn nhanh. Bảng~\ref{tab:oltp-olap} tóm tắt khác biệt giữa hệ thống tác nghiệp (OLTP), thường được thiết kế theo các dạng chuẩn để tránh dư thừa và bất thường cập nhật~\cite{elmasri,quang}, và kho dữ liệu (OLAP).
+
+\begin{table}[H]
+\centering
+\caption{So sánh hệ thống tác nghiệp (OLTP) và kho dữ liệu (OLAP)}
+\label{tab:oltp-olap}
+\begin{tabularx}{\textwidth}{|p{3.2cm}|X|X|}
+\hline
+\textbf{Tiêu chí} & \textbf{OLTP} & \textbf{Kho dữ liệu / OLAP} \\ \hline
+Mục đích & Xử lý giao dịch hằng ngày (mượn, trả xe) & Phân tích, hỗ trợ ra quyết định \\ \hline
+Dữ liệu & Hiện tại, chi tiết, thay đổi liên tục & Lịch sử, tổng hợp được, ổn định \\ \hline
+Thiết kế & Chuẩn hóa (3NF) để tránh dư thừa & Phi chuẩn hóa có kiểm soát (star/snowflake) \\ \hline
+Truy vấn & Ngắn, đọc/ghi vài bản ghi & Quét, gom nhóm nhiều bản ghi \\ \hline
+Người dùng & Nhân viên tác nghiệp, khách hàng & Nhà quản lý, nhà phân tích \\ \hline
+\end{tabularx}
+\end{table}
+
+\subsect{Mô hình đa chiều}
+Mô hình đa chiều gồm \textbf{bảng sự kiện} (fact table) chứa các \textbf{độ đo} (measure) số học của một quy trình nghiệp vụ, và các \textbf{bảng chiều} (dimension table) chứa ngữ cảnh mô tả (ai, khi nào, ở đâu, điều kiện gì). \textbf{Độ hạt} (grain) là mức chi tiết của một dòng trong bảng sự kiện và là quyết định quan trọng nhất của thiết kế~\cite{kimball}.
+\begin{itemize}
+    \item \textbf{Star Schema}: bảng sự kiện ở trung tâm, mỗi bảng chiều nối trực tiếp với bảng sự kiện và được phi chuẩn hóa. Truy vấn đơn giản (ít phép nối), dễ hiểu.
+    \item \textbf{Snowflake Schema}: các bảng chiều được chuẩn hóa tiếp thành nhiều bảng con. Tiết kiệm lưu trữ nhưng truy vấn nhiều phép nối hơn.
+\end{itemize}
+Độ đo được phân loại theo tính cộng được: \textit{cộng được hoàn toàn} (additive, ví dụ số lượt thuê), \textit{cộng được một phần} (semi-additive) và \textit{không cộng được} (non-additive, ví dụ nhiệt độ, tỷ lệ) - loại sau chỉ được lấy trung bình hoặc tính lại từ thành phần, không được cộng dồn.
+
+\sect{Quy trình thiết kế kho dữ liệu}\label{sec:theory-design}
+Kimball~\cite{kimball} đề xuất quy trình thiết kế đa chiều gồm bốn bước:
+\begin{enumerate}
+    \item \textbf{Chọn quy trình nghiệp vụ} cần mô hình hóa.
+    \item \textbf{Khai báo độ hạt} của bảng sự kiện.
+    \item \textbf{Xác định các chiều} mô tả ngữ cảnh của mỗi dòng sự kiện.
+    \item \textbf{Xác định các sự kiện} (độ đo) ứng với độ hạt đã chọn.
+\end{enumerate}
+Bên cạnh đó, quá trình thiết kế phải giải quyết nhiều \textbf{vấn đề thiết kế}~\cite{inmon,kimball}: lựa chọn độ hạt; khóa thay thế (surrogate key) và khóa tự nhiên; chiều thay đổi chậm (Slowly Changing Dimension - SCD); xử lý dữ liệu thiếu và dữ liệu bẩn; chiều suy biến (degenerate dimension); chiều thời gian; tính cộng được của độ đo; chỉ mục và hiệu năng; chiến lược nạp (toàn bộ hay tăng dần). Các vấn đề này được phân tích cụ thể cho đề tài ở mục~\ref{sec:design-issues}.
+
+\subsect{Quy trình ETL}
+ETL (Extract - Transform - Load) là quy trình đưa dữ liệu từ nguồn vào kho~\cite{kimball}:
+\begin{itemize}
+    \item \textbf{Extract}: đọc dữ liệu từ các nguồn (tệp, CSDL tác nghiệp, API).
+    \item \textbf{Transform}: làm sạch (thiếu, trùng, sai miền giá trị), chuẩn hóa mã, quy đổi đơn vị, tạo thuộc tính dẫn xuất, sinh khóa và tách thành bảng chiều, bảng sự kiện.
+    \item \textbf{Load}: nạp vào kho theo đúng thứ tự ràng buộc (chiều trước, sự kiện sau), sau đó \textbf{đối chiếu} với nguồn để đảm bảo tính chính xác.
+\end{itemize}
+
+\subsect{Các phép toán OLAP}
+OLAP (Online Analytical Processing) cho phép xem dữ liệu dưới dạng khối đa chiều với các phép toán chính~\cite{han}:
+\begin{itemize}
+    \item \textbf{Roll-up}: gộp lên mức cao hơn của phân cấp (giờ $\rightarrow$ ngày $\rightarrow$ tháng $\rightarrow$ năm).
+    \item \textbf{Drill-down}: khoan xuống mức chi tiết hơn (ngược với roll-up).
+    \item \textbf{Slice}: cố định giá trị của \textit{một} chiều (ví dụ thời tiết = Clear).
+    \item \textbf{Dice}: chọn khối con bằng điều kiện trên \textit{nhiều} chiều.
+    \item \textbf{Pivot}: xoay trục, đặt hai chiều lên hàng và cột để so sánh chéo.
+\end{itemize}
+
+\sect{Hệ hỗ trợ quản lý (MSS) và hệ hỗ trợ quyết định (DSS)}\label{sec:theory-dss}
+\textbf{Hệ hỗ trợ quản lý} (Management Support System - MSS) là thuật ngữ chung cho các hệ thống thông tin dùng công nghệ để hỗ trợ công việc quản lý và ra quyết định, bao gồm DSS, hệ thống thông tin điều hành (EIS), hệ chuyên gia, hệ thống BI~\cite{turban}. \textbf{Hệ hỗ trợ quyết định} là hệ thống thông tin dựa trên máy tính, tương tác, giúp người ra quyết định sử dụng \textbf{dữ liệu} và \textbf{mô hình} để giải quyết các bài toán \textbf{bán cấu trúc} hoặc \textbf{không cấu trúc}~\cite{turban,sharda}. Các đặc tính chính của DSS:
+\begin{itemize}
+    \item \textbf{Hỗ trợ chứ không thay thế} người ra quyết định: hệ thống đưa ra thông tin, phân loại, khuyến nghị; quyết định cuối cùng thuộc về con người.
+    \item Giải quyết bài toán \textbf{bán cấu trúc}: kết hợp phần định lượng (mô hình) và phán đoán của con người.
+    \item \textbf{Tương tác} và dễ sử dụng; cho phép người dùng thay đổi giả định và xem lại kết quả (phân tích ``what-if'', phân tích độ nhạy).
+    \item Kết hợp \textbf{dữ liệu và mô hình}; có thể thích nghi khi dữ liệu thay đổi.
+\end{itemize}
+Một DSS điển hình gồm bốn thành phần~\cite{turban}: (1) \textbf{phân hệ quản lý dữ liệu} (data management) - thường dựa trên kho dữ liệu; (2) \textbf{phân hệ quản lý mô hình} (model management) - các mô hình định lượng; (3) \textbf{giao diện người dùng}; (4) \textbf{phân hệ tri thức} (tùy chọn) - các quy tắc, tri thức chuyên gia. Nguyên tắc phân tích, thiết kế DSS là xuất phát từ \textbf{quyết định cần hỗ trợ} (ai quyết định, quyết định gì, khi nào, dựa trên thông tin gì), sau đó mới chọn dữ liệu, mô hình và giao diện tương ứng; phát triển theo vòng lặp và đánh giá với người dùng.
+
+\sect{Các giai đoạn của quá trình ra quyết định}\label{sec:theory-simon}
+Theo mô hình của Simon~\cite{simon,turban}, quá trình ra quyết định gồm các giai đoạn:
+\begin{enumerate}
+    \item \textbf{Tìm hiểu} (Intelligence): quan sát thực tế, xác định vấn đề hoặc cơ hội, thu thập dữ liệu.
+    \item \textbf{Thiết kế} (Design): xây dựng mô hình của vấn đề, xác định tiêu chí lựa chọn và các phương án.
+    \item \textbf{Lựa chọn} (Choice): đánh giá các phương án bằng mô hình, phân tích độ nhạy, chọn phương án đề xuất.
+    \item \textbf{Thực hiện} (Implementation): đưa phương án vào thực tế, theo dõi kết quả và phản hồi về giai đoạn đầu.
+\end{enumerate}
+Các giai đoạn có thể lặp lại; DSS hỗ trợ tất cả các giai đoạn, đặc biệt là thiết kế và lựa chọn. Cách đề tài ánh xạ bốn giai đoạn này vào DSS được trình bày ở mục~\ref{sec:dss-simon}.
+
+\sect{Mô hình hóa trong DSS}\label{sec:theory-model}
+Mô hình là sự biểu diễn đơn giản hóa của thực tế. Một mô hình ra quyết định có ba nhóm biến~\cite{turban}:
+\begin{itemize}
+    \item \textbf{Biến quyết định} (decision variables): những gì người ra quyết định kiểm soát được (ví dụ mức chuẩn bị xe).
+    \item \textbf{Biến không kiểm soát được} (uncontrollable variables / parameters): yếu tố môi trường (thời tiết, loại ngày, giờ).
+    \item \textbf{Biến kết quả} (result variables): đầu ra phụ thuộc vào hai nhóm trên (mức nhu cầu, khả năng thiếu xe).
+\end{itemize}
+Quan hệ giữa các biến có thể được biểu diễn bằng mô hình toán học, mô hình thống kê/dự báo, mô hình tối ưu hoặc \textbf{mô hình dựa trên quy tắc} (rule-based). Mô hình có thể là \textit{tĩnh} (một thời điểm) hoặc \textit{động}; \textit{chắc chắn} hoặc \textit{rủi ro / bất định}. Đánh giá mô hình gồm kiểm tra tính đúng đắn với dữ liệu và \textbf{phân tích độ nhạy} - xem kết quả thay đổi thế nào khi tham số thay đổi.
+
+\sect{Vai trò của kho dữ liệu trong DSS}\label{sec:theory-role}
+Kho dữ liệu là \textbf{nền tảng dữ liệu} của DSS hướng dữ liệu (data-driven DSS)~\cite{sharda}:
+\begin{itemize}
+    \item Cung cấp dữ liệu \textbf{sạch, tích hợp, nhất quán} - mô hình chỉ đáng tin khi dữ liệu đầu vào đáng tin.
+    \item Lưu \textbf{lịch sử dài hạn}, cho phép mô hình học quy luật theo thời gian (giờ, ngày, mùa, năm).
+    \item Cấu trúc đa chiều giúp tính nhanh các tổng hợp mà mô hình cần (ví dụ trung bình theo giờ $\times$ loại ngày $\times$ thời tiết).
+    \item Tách tải phân tích khỏi hệ thống tác nghiệp.
+\end{itemize}
+Trong đề tài, phân hệ dữ liệu của DSS chính là kho \code{dw}; mô hình phân loại đọc tổng hợp từ kho qua view \code{v\_rentals\_flat} (mục~\ref{sec:dss-arch}).
+
+\sect{Ví dụ thực tế về DW và DSS}\label{sec:theory-examples}
+\begin{itemize}
+    \item \textbf{Bán lẻ}: Walmart xây dựng một trong những kho dữ liệu lớn nhất thế giới và chia sẻ dữ liệu bán hàng với nhà cung cấp qua hệ thống Retail Link để hỗ trợ quyết định bổ sung hàng, dự báo nhu cầu~\cite{sharda}.
+    \item \textbf{Xe đạp công cộng}: Capital Bikeshare (Washington, D.C.) - nguồn dữ liệu của đề tài - công bố lịch sử chuyến đi để phục vụ phân tích~\cite{fanaee}; các hệ thống như Citi Bike (New York) dùng dữ liệu nhu cầu theo thời gian và trạm để điều phối lại xe (rebalancing), kể cả chương trình khuyến khích người dùng tự di chuyển xe từ trạm đầy sang trạm thiếu.
+    \item \textbf{Ngân hàng}: kho dữ liệu khách hàng kết hợp mô hình chấm điểm tín dụng hỗ trợ quyết định cấp tín dụng và phát hiện gian lận~\cite{sharda}.
+    \item \textbf{Y tế}: kho dữ liệu bệnh án hỗ trợ phân tích dịch bệnh và quyết định phân bổ giường bệnh, thuốc~\cite{burstein}.
+\end{itemize}
+Điểm chung của các ví dụ: dữ liệu tác nghiệp phân tán được tích hợp vào kho, sau đó mô hình và giao diện của DSS khai thác kho để hỗ trợ một quyết định cụ thể, lặp lại thường xuyên.

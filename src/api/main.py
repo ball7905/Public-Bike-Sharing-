@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from api import dss_queries as DQ
 from api import queries as Q
 from api.db import cursor
 
@@ -72,6 +73,33 @@ def users(by: str = Query("hour", pattern="^(hour|month|weekday)$"), f: dict = D
     return run(Q.users, f, by)
 
 
+@app.get("/api/climate")
+def climate(by: str = Query("temp", pattern="^(temp|humidity)$"), f: dict = Depends(get_filters)):
+    return run(Q.climate, f, by)
+
+
 @app.get("/api/olap/pivot")
 def olap_pivot(row: str = "month", col: str = "weather", measure: str = "avg_hourly", f: dict = Depends(get_filters)):
     return run(Q.pivot, f, row, col, measure)
+
+
+# ---- DSS (FR09 phân loại nhu cầu, FR10 khuyến nghị). Kỳ lịch sử lấy từ bộ lọc year / season / month;
+# ---- các bộ lọc khác bị bỏ qua vì loại ngày và thời tiết là tham số của tình huống.
+Q_LOW = Query(1 / 3, gt=0, lt=1, description="Phân vị ngưỡng thấp")
+Q_HIGH = Query(2 / 3, gt=0, lt=1, description="Phân vị ngưỡng cao")
+
+
+@app.get("/api/dss/thresholds")
+def dss_thresholds(q_low: float = Q_LOW, q_high: float = Q_HIGH, f: dict = Depends(get_filters)):
+    return run(DQ.thresholds, f, q_low, q_high)
+
+
+@app.get("/api/dss/plan")
+def dss_plan(day_group: str = Query("working", pattern="^(working|non_working)$"), weather: int = 1,
+             q_low: float = Q_LOW, q_high: float = Q_HIGH, f: dict = Depends(get_filters)):
+    return run(DQ.plan, f, day_group, weather, q_low, q_high)
+
+
+@app.get("/api/dss/matrix")
+def dss_matrix(q_low: float = Q_LOW, q_high: float = Q_HIGH, f: dict = Depends(get_filters)):
+    return run(DQ.matrix, f, q_low, q_high)

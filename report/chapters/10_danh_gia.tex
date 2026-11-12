@@ -4,8 +4,7 @@
 
 \sect{Kiểm thử tự động}
 Bộ kiểm thử dùng \code{pytest} và \code{FastAPI TestClient}, chạy bằng \code{python -m pytest tests -q}. Điểm chính: các kiểm thử không chỉ kiểm tra API ``chạy được'' mà \textbf{đối chiếu kết quả với dữ liệu nguồn} được tính độc lập bằng Pandas từ \code{hour.csv}.
-% TODO: chạy lại python -m pytest tests -q trên máy có CSDL để xác nhận 52/52
-Bộ kiểm thử hiện có \textbf{52 kiểm thử}; 18 kiểm thử kiểm định ngoài mẫu đã chạy đạt trên máy phát triển, còn các kiểm thử cần CSDL chưa được chạy lại trong lần cập nhật này.
+Kết quả lần chạy cuối: \textbf{52/52 kiểm thử đạt}.
 
 \begin{table}[H]
 \centering

@@ -18,6 +18,8 @@ DB = {
     "user": os.getenv("PGUSER", "postgres"),
     "password": os.getenv("PGPASSWORD", ""),
 }
+# DATABASE_URL (vd. Render) có ưu tiên hơn các biến PG* ở trên; để trống thì dùng PG*.
+DB_DSN = os.getenv("DATABASE_URL")
 
 # Hệ số quy đổi theo Readme của UCI
 TEMP_MAX, ATEMP_MAX, HUM_MAX, WIND_MAX = 41, 50, 100, 67

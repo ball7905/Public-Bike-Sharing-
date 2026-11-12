@@ -1,7 +1,7 @@
 import io
 import logging
 import psycopg2
-from config import DB, SQL_DIR
+from config import DB, DB_DSN, SQL_DIR
 
 log = logging.getLogger(__name__)
 
@@ -9,7 +9,7 @@ LOAD_ORDER = ["dim_date", "dim_hour", "dim_weather", "fact_rentals"]
 
 
 def connect():
-    return psycopg2.connect(**DB)
+    return psycopg2.connect(DB_DSN) if DB_DSN else psycopg2.connect(**DB)
 
 
 def create_schema(conn):

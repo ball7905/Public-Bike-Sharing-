@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { fmt, get } from '../api.js'
+import { barProps, barTooltip } from './chartTheme.js'
 
 const LEVELS = ['year', 'quarter', 'month', 'day', 'hour']
 const LEVEL_NAME = { year: 'Năm', quarter: 'Quý', month: 'Tháng', day: 'Ngày', hour: 'Giờ' }
@@ -40,10 +41,10 @@ export default function DrillChart({ filters }) {
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis dataKey="label" />
           <YAxis width={84} tickFormatter={(v) => fmt(v)} />
-          <Tooltip formatter={(v) => fmt(v)} />
+          <Tooltip {...barTooltip} formatter={(v) => fmt(v)} />
           <Legend />
-          <Bar dataKey="registered" name="Đăng ký" stackId="a" fill="#2563eb" cursor={level === 'hour' ? 'default' : 'pointer'} onClick={drillInto} />
-          <Bar dataKey="casual" name="Vãng lai" stackId="a" fill="#f59e0b" cursor={level === 'hour' ? 'default' : 'pointer'} onClick={drillInto} />
+          <Bar {...barProps} dataKey="registered" name="Đăng ký" stackId="a" fill="#2563eb" cursor={level === 'hour' ? 'default' : 'pointer'} onClick={drillInto} />
+          <Bar {...barProps} dataKey="casual" name="Vãng lai" stackId="a" fill="#f59e0b" cursor={level === 'hour' ? 'default' : 'pointer'} onClick={drillInto} />
         </BarChart>
       </ResponsiveContainer>
     </section>

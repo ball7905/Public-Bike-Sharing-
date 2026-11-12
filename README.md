@@ -79,3 +79,18 @@ python -m pytest tests -q           # cần DB đã nạp ETL
 - `weekday`: 0 = Chủ nhật (theo nguồn UCI). `season` theo nguồn nên một tháng có thể thuộc 2 mùa.
 - Nguồn thiếu 165 giờ (không có bản ghi); trung bình theo giờ chỉ tính trên các giờ có bản ghi.
 - Mức thời tiết "Heavy rain/snow" chỉ có 3 giờ quan sát, kết quả không đủ tin cậy.
+
+## Triển khai lên Render
+Repo có sẵn `Dockerfile` (1 web service: API + dashboard) và `render.yaml` (Blueprint, gồm cả PostgreSQL).
+
+**Cách 1 - Blueprint (khuyến nghị):** trên Render chọn *New > Blueprint*, chọn repo và branch, Render tạo database `bike_dw`
+và web service. Lần khởi động đầu tiên, container tự chờ DB, chạy ETL nạp kho (vì kho còn trống) rồi chạy API.
+
+**Cách 2 - Thủ công:** tạo *PostgreSQL* (database `bike_dw`); tạo *Web Service* chọn *Docker* trỏ tới repo này;
+đặt biến môi trường `DATABASE_URL` = **Internal Database URL** của database vừa tạo. Tùy chọn: `RUN_ETL=always`, `CORS_ORIGINS`
+(xem `.env.render.example`). Health check: `/api/health`.
+
+**Tên miền riêng:** *Settings > Custom Domains*, thêm domain, rồi trỏ bản ghi CNAME của domain về host `*.onrender.com` mà Render hiển thị.
+
+**Lưu ý gói miễn phí:** web service miễn phí ngủ khi không có truy cập, lần gọi đầu có thể mất khoảng 30–60 giây.
+Database miễn phí hết hạn sau một thời gian giới hạn; xem chính sách hiện hành của Render trước khi dùng lâu dài.

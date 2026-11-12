@@ -10,11 +10,12 @@ from dss import backtest as B  # noqa: E402
 
 HOUR_CSV = Path(__file__).resolve().parents[1] / "data" / "hour.csv"
 EXP_IDS = ["full_static", "full_expanding", "full_expanding_adjusted",
+           "full_temp_static", "full_temp_expanding", "full_temp_expanding_adjusted",
            "hour_only_static", "hour_only_expanding", "hour_only_expanding_adjusted"]
 
 
-def rec(d, hour=0, group="working", w=1, cnt=0):
-    return {"date": d, "hour": hour, "day_group": group, "weather_key": w, "total_cnt": cnt}
+def rec(d, hour=0, group="working", w=1, cnt=0, t=20.0):
+    return {"date": d, "hour": hour, "day_group": group, "weather_key": w, "temp_c": t, "total_cnt": cnt}
 
 
 def synth(value_fn, hours=(0, 12)):
@@ -90,6 +91,26 @@ def test_metrics_mae_and_empty_input():
 
 # ---------- fit / predict ----------
 
+def test_temp_band_edges():
+    assert [B.temp_band(t) for t in (9.99, 10, 29.9, 30, 41)] == [0, 1, 2, 3, 3]
+    assert [B.temp_band(t) for t in (-5, 0, 10.0)] == [0, 0, 1]     # âm -> khoảng thấp nhất
+    assert len(B.TEMP_BAND_LABELS) == 4
+
+
+def test_full_temp_falls_back_to_full_group_when_band_unseen():
+    train = [rec(date(2011, 1, 1), 5, "working", 1, 100, t=15),
+             rec(date(2011, 1, 2), 5, "working", 1, 200, t=12)]          # cùng khoảng 10–20°C
+    f = B.fit(train, "full_temp")
+    assert B.predict(f, rec(date(2012, 1, 1), 5, "working", 1, t=17)) == (150.0, False)   # nhóm đầy đủ
+    # khoảng 20–30°C chưa từng có -> nhóm "full" (giờ x loại ngày x thời tiết) làm dự phòng
+    assert B.predict(f, rec(date(2012, 1, 1), 5, "working", 1, t=25)) == (150.0, True)
+    # thời tiết lạ -> TB theo giờ; giờ lạ -> TB toàn bộ
+    assert B.predict(f, rec(date(2012, 1, 1), 5, "working", 3, t=17)) == (150.0, True)
+    assert B.predict(f, rec(date(2012, 1, 1), 9, "working", 1, t=17)) == (150.0, True)
+    # mô hình full bỏ qua nhiệt độ
+    assert B.predict(B.fit(train, "full"), rec(date(2012, 1, 1), 5, "working", 1, t=25)) == (150.0, False)
+
+
 def test_predict_fallback_chain_hour_then_overall():
     train = [rec(date(2011, 1, 1), 5, "working", 1, 100),
              rec(date(2011, 1, 2), 5, "working", 1, 200),
@@ -152,6 +173,7 @@ def test_unseen_group_counted_as_fallback_in_run():
     fb = exp_by_id(res)["full_static"]["n_fallback"]
     assert fb == 1
     assert exp_by_id(res)["hour_only_static"]["n_fallback"] == 0
+    assert exp_by_id(res)["full_temp_static"]["n_fallback"] >= 1
 
 
 def test_expanding_adjusted_factor_clamped_to_max_and_min():
@@ -185,6 +207,7 @@ def test_load_csv_maps_columns():
     recs = B.load_uci_hour_csv(HOUR_CSV)
     assert len(recs) == 17379
     first = recs[0]
+    assert first.pop("temp_c") == pytest.approx(0.24 * 41)     # temp chuẩn hóa 0,24 -> 9,84°C
     assert first == {"date": date(2011, 1, 1), "hour": 0, "day_group": "non_working",
                      "weather_key": 1, "total_cnt": 16}
     assert {r["day_group"] for r in recs} == {"working", "non_working"}
@@ -225,3 +248,11 @@ def test_real_data_full_model_beats_hour_only_macro_recall(real, scheme):
     _, res = real
     e = exp_by_id(res)
     assert e[f"full_{scheme}"]["metrics"]["macro_recall"] > e[f"hour_only_{scheme}"]["metrics"]["macro_recall"]
+
+
+@pytest.mark.parametrize("scheme", ["static", "expanding", "expanding_adjusted"])
+def test_real_data_full_temp_beats_full(real, scheme):
+    _, res = real
+    e = exp_by_id(res)
+    assert e[f"full_temp_{scheme}"]["metrics"]["accuracy"] > e[f"full_{scheme}"]["metrics"]["accuracy"]
+    assert e[f"full_temp_{scheme}"]["metrics"]["macro_recall"] > e[f"full_{scheme}"]["metrics"]["macro_recall"]

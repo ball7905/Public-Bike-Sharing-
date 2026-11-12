@@ -3,7 +3,7 @@
 Chạy từ thư mục gốc repo:  .venv/bin/python report/scripts/make_backtest_figure.py
 Kết quả: report/figures/backtest.pdf (vector). Xem trước PNG:
     FIG_FMT=png FIG_DIR=<thư mục nháp> .venv/bin/python report/scripts/make_backtest_figure.py
-Ngoài hình, script in ra bảng LaTeX 6 thí nghiệm và tỷ lệ tổng lượt thuê 2012/2011 để dùng trong văn bản.
+Ngoài hình, script in ra bảng LaTeX 9 thí nghiệm và tỷ lệ tổng lượt thuê 2012/2011 để dùng trong văn bản.
 """
 import os
 import sys
@@ -28,6 +28,7 @@ BLUE, GREEN, ORANGE, RED, PURPLE, GRAY = "#2563eb", "#16a34a", "#f59e0b", "#dc26
 LEVEL_VI = {"low": "Thấp", "medium": "Trung bình", "high": "Cao"}
 SCHEME_VI = {"static": "Tĩnh", "expanding": "Mở rộng", "expanding_adjusted": "Mở rộng + hiệu chỉnh"}
 SCHEME_COL = {"static": GRAY, "expanding": BLUE, "expanding_adjusted": RED}
+MODEL_VI = {"full": "DSS", "full_temp": "DSS + nhiệt độ", "hour_only": "Chỉ theo giờ"}
 
 
 def vn_pct(x):
@@ -50,7 +51,7 @@ def print_latex_table(res):
     print("% ---- bảng LaTeX (tab:backtest) ----")
     for e in res["experiments"]:
         m = e["metrics"]
-        model = "DSS" if e["model"] == "full" else "Chỉ theo giờ"
+        model = MODEL_VI[e["model"]]
         scheme = SCHEME_VI[e["scheme"]]
         print(f"{model} & {scheme} & {vn_pct(m['accuracy'])} & {vn_pct(m['macro_f1'])} & "
               f"{vn_pct(m['macro_recall'])} & {vn_pct(m['under_prepared_rate'])} & "
@@ -90,7 +91,7 @@ def main():
     # Hình: (a) ma trận nhầm lẫn full_static, (b) full_expanding_adjusted, (c) recall TB 3 mức theo tháng
     import matplotlib.gridspec as gridspec
     fig = plt.figure(figsize=(7.4, 6.8))
-    gs = gridspec.GridSpec(2, 2, figure=fig, height_ratios=[1.0, 0.85], hspace=0.55, wspace=0.8)
+    gs = gridspec.GridSpec(2, 2, figure=fig, height_ratios=[1.0, 0.85], hspace=0.55, wspace=1.15)
     ax_a = fig.add_subplot(gs[0, 0])
     ax_b = fig.add_subplot(gs[0, 1])
     ax_c = fig.add_subplot(gs[1, :])
@@ -101,17 +102,22 @@ def main():
                    "(b) Mở rộng + hiệu chỉnh mức")
 
     months = list(range(1, 13))
-    for scheme in ("static", "expanding", "expanding_adjusted"):
-        mon = exps[f"full_{scheme}"]["monthly"]
+    lines = [
+        ("full_static", GRAY, "DSS, tĩnh"),
+        ("full_expanding", BLUE, "DSS, mở rộng"),
+        ("full_expanding_adjusted", RED, "DSS, mở rộng + hiệu chỉnh"),
+        ("full_temp_expanding_adjusted", PURPLE, "DSS + nhiệt độ, mở rộng + hiệu chỉnh"),
+    ]
+    for eid, color, name in lines:
+        mon = exps[eid]["monthly"]
         ys = [float("nan") if m["macro_recall"] is None else m["macro_recall"] for m in mon]
-        ax_c.plot(months, ys, color=SCHEME_COL[scheme], lw=2, marker="o", ms=4,
-                  label=SCHEME_VI[scheme])
-    ax_c.set_title("(c) Recall (TB 3 mức) theo tháng (mô hình DSS)", fontsize=9.5)
+        ax_c.plot(months, ys, color=color, lw=2, marker="o", ms=4, label=name)
+    ax_c.set_title("(c) Recall (TB 3 mức) theo tháng", fontsize=9.5)
     ax_c.set_xticks(months), ax_c.set_xlabel("Tháng")
     ax_c.set_ylabel("Recall (TB 3 mức)")
     ax_c.set_ylim(0, 1.05)
     ax_c.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
-    ax_c.legend(frameon=False, ncol=3, loc="lower left", fontsize=8.5)
+    ax_c.legend(frameon=False, ncol=2, loc="lower left", fontsize=8.5)
 
     path = OUT / f"backtest.{FMT}"
     fig.savefig(path, bbox_inches="tight")

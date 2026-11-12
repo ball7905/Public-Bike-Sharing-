@@ -3,9 +3,11 @@
 Mục tiêu: đánh giá mô hình ngoài mẫu (out-of-sample). Mô hình được huấn luyện trên lịch sử,
 dự báo MỨC ĐỘ nhu cầu (Thấp / Trung bình / Cao) cho từng giờ của năm kiểm thử, rồi so với mức thực tế.
 
-Hai mô hình:
+Ba mô hình:
   - "full"      : nhóm theo giờ x loại ngày x thời tiết (giống engine.build_matrix)
-  - "hour_only" : nhóm theo giờ
+  - "full_temp" : như "full", thêm khoảng nhiệt độ 10°C (temp_c). Khi nhóm không có dữ liệu, dùng nhóm "full",
+                  rồi mới đến TB theo giờ và TB toàn bộ (hai mức sau là phương án dự phòng chung)
+  - "hour_only" : nhóm theo giờ (mô hình cơ sở)
 Ba lược đồ huấn luyện:
   - "static"             : huấn luyện một lần trên mọi năm trước năm kiểm thử
   - "expanding"          : huấn luyện lại đầu mỗi tháng, chỉ dùng dữ liệu trước ngày 1 của tháng đó
@@ -18,9 +20,14 @@ from datetime import date, timedelta
 
 from . import engine
 
-MODELS = ("full", "hour_only")
+MODELS = ("full", "full_temp", "hour_only")
 SCHEMES = ("static", "expanding", "expanding_adjusted")
-MODEL_LABELS = {"full": "Mô hình DSS (giờ × loại ngày × thời tiết)", "hour_only": "Mô hình chỉ theo giờ"}
+MODEL_LABELS = {
+    "full": "Mô hình DSS (giờ × loại ngày × thời tiết)",
+    "full_temp": "Mô hình DSS + nhiệt độ (giờ × loại ngày × thời tiết × khoảng nhiệt 10°C)",
+    "hour_only": "Mô hình chỉ theo giờ",
+}
+TEMP_BAND_LABELS = ("<10°C", "10–20°C", "20–30°C", "≥30°C")
 SCHEME_LABELS = {
     "static": "cố định đến {y}",
     "expanding": "mở rộng theo tháng",
@@ -43,8 +50,21 @@ def quantile(sorted_values, q):
     return float(sorted_values[lo] + (sorted_values[hi] - sorted_values[lo]) * (pos - lo))
 
 
+def temp_band(temp_c):
+    """Chỉ số khoảng nhiệt 10°C: 0 = <10°C, 1 = 10–20°C, 2 = 20–30°C, 3 = ≥30°C (xem TEMP_BAND_LABELS)."""
+    return min(max(int(temp_c // 10), 0), len(TEMP_BAND_LABELS) - 1)
+
+
+def _parent_key(rec):
+    return rec["hour"], rec["day_group"], rec["weather_key"]
+
+
 def _key(rec, model):
-    return (rec["hour"], rec["day_group"], rec["weather_key"]) if model == "full" else rec["hour"]
+    if model == "full":
+        return _parent_key(rec)
+    if model == "full_temp":
+        return _parent_key(rec) + (temp_band(rec["temp_c"]),)
+    return rec["hour"]
 
 
 def _means(pairs):
@@ -57,17 +77,20 @@ def _means(pairs):
 
 
 def fit(train, model, q_low=engine.DEFAULT_Q_LOW, q_high=engine.DEFAULT_Q_HIGH):
-    """Huấn luyện: ngưỡng từ phân vị total_cnt của train; TB theo nhóm, TB theo giờ, TB toàn bộ."""
+    """Huấn luyện: ngưỡng từ phân vị total_cnt của train; TB theo nhóm, TB theo nhóm đầy đủ (full_temp), TB theo giờ, TB toàn bộ."""
     if model not in MODELS:
         raise ValueError(f"Mô hình không hợp lệ: {model}")
     if not train:
         raise ValueError("Không có dữ liệu lịch sử để huấn luyện")
     totals = sorted(r["total_cnt"] for r in train)
     th = engine.make_thresholds(quantile(totals, q_low), quantile(totals, q_high), q_low, q_high)
+    # full_temp: TB của nhóm "full" (giờ x loại ngày x thời tiết) là phương án dự phòng cấp 1
+    parent_means = _means((_parent_key(r), r["total_cnt"]) for r in train) if model == "full_temp" else None
     return {
         "model": model,
         "th": th,
         "group_means": _means((_key(r, model), r["total_cnt"]) for r in train),
+        "parent_means": parent_means,
         "hour_means": _means((r["hour"], r["total_cnt"]) for r in train),
         "overall_mean": sum(totals) / len(totals),
     }
@@ -75,10 +98,14 @@ def fit(train, model, q_low=engine.DEFAULT_Q_LOW, q_high=engine.DEFAULT_Q_HIGH):
 
 def predict(fitted, rec):
     """Trả về (giá trị dự báo, có dùng phương án dự phòng không).
-    Thứ tự: TB nhóm -> TB theo giờ -> TB toàn bộ."""
+    Thứ tự: TB nhóm -> [full_temp: TB nhóm "full"] -> TB theo giờ -> TB toàn bộ."""
     g = fitted["group_means"].get(_key(rec, fitted["model"]))
     if g is not None:
         return g, False
+    if fitted["parent_means"] is not None:
+        p = fitted["parent_means"].get(_parent_key(rec))
+        if p is not None:
+            return p, True
     h = fitted["hour_means"].get(rec["hour"])
     if h is not None:
         return h, True
@@ -178,7 +205,7 @@ def _run_experiment(records, test, train_static, test_year, model, scheme, q_low
 
 
 def run_backtest(records, test_year=2012, q_low=engine.DEFAULT_Q_LOW, q_high=engine.DEFAULT_Q_HIGH):
-    """Chạy 6 thí nghiệm: mô hình (full, hour_only) x lược đồ (static, expanding, expanding_adjusted)."""
+    """Chạy 9 thí nghiệm: mô hình (full, full_temp, hour_only) x lược đồ (static, expanding, expanding_adjusted)."""
     engine.validate_quantiles(q_low, q_high)
     train_static = [r for r in records if r["date"].year < test_year]
     if not train_static:
@@ -204,6 +231,7 @@ def load_uci_hour_csv(path):
                 "hour": int(row["hr"]),
                 "day_group": "working" if int(row["workingday"]) == 1 else "non_working",
                 "weather_key": int(row["weathersit"]),
+                "temp_c": float(row["temp"]) * 41,      # temp đã chuẩn hóa chia 41 (UCI readme), như ETL
                 "total_cnt": int(row["cnt"]),
             })
     return records

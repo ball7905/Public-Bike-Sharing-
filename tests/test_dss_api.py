@@ -65,7 +65,7 @@ def test_dss_validation_errors():
 
 def test_backtest_out_of_sample():
     b = c.get("/api/dss/backtest").json()
-    assert len(b["experiments"]) == 6                    # 2 mô hình x 3 cách huấn luyện
+    assert len(b["experiments"]) == 9                    # 3 mô hình x 3 cách huấn luyện
     assert b["experiments"][0]["id"] == "full_static"
     assert b["test_year"] == 2012
     assert b["n_test"] == int((HOUR["dteday"].str.startswith("2012")).sum())   # số giờ 2012 trong hour.csv

@@ -88,7 +88,7 @@ def backtest(cur, q_low=E.DEFAULT_Q_LOW, q_high=E.DEFAULT_Q_HIGH):
     E.validate_quantiles(q_low, q_high)
     rows = q(cur, f"""SELECT full_date AS date, hour,
                              CASE WHEN is_working_day THEN 'working' ELSE 'non_working' END AS day_group,
-                             weather_key, total_cnt
+                             weather_key, temp_c::float8 AS temp_c, total_cnt
                       FROM {V} ORDER BY full_date, hour""")
     records = [dict(r) for r in rows]
     return B.run_backtest(records, BACKTEST_YEAR, q_low, q_high)

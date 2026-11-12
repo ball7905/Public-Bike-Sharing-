@@ -1,5 +1,6 @@
 """Truy xuất dữ liệu lịch sử từ kho cho DSS (bước 2-3 của quy trình), rồi gọi mô hình trong dss.engine."""
 from api.queries import V, q, where
+from dss import backtest as B
 from dss import engine as E
 
 PERIOD_FILTERS = ("year", "season", "month")      # DSS chỉ lọc theo khoảng thời gian lịch sử
@@ -77,3 +78,17 @@ def matrix(cur, filters, q_low=E.DEFAULT_Q_LOW, q_high=E.DEFAULT_Q_HIGH):
     out = E.build_matrix(rows, th, s["mean"], _weathers(cur))
     out["period"] = period
     return out
+
+
+BACKTEST_YEAR = 2012      # năm kiểm định ngoài mẫu: huấn luyện trên các năm trước, kiểm tra trên năm này
+
+
+def backtest(cur, q_low=E.DEFAULT_Q_LOW, q_high=E.DEFAULT_Q_HIGH):
+    """Kiểm định ngoài mẫu: dự báo mức nhu cầu từng giờ của BACKTEST_YEAR chỉ dựa trên dữ liệu trước đó."""
+    E.validate_quantiles(q_low, q_high)
+    rows = q(cur, f"""SELECT full_date AS date, hour,
+                             CASE WHEN is_working_day THEN 'working' ELSE 'non_working' END AS day_group,
+                             weather_key, total_cnt
+                      FROM {V} ORDER BY full_date, hour""")
+    records = [dict(r) for r in rows]
+    return B.run_backtest(records, BACKTEST_YEAR, q_low, q_high)

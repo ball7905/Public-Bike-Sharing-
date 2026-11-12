@@ -62,6 +62,11 @@ python -m pytest tests -q           # cần DB đã nạp ETL
 - Chỉ khuyến nghị **mức độ** chuẩn bị, không tính số xe cụ thể (nguồn không có số xe sẵn sàng / vị trí trạm).
 - API: `/api/dss/thresholds` (khảo sát phân phối + ngưỡng), `/api/dss/plan?day_group=working|non_working&weather=1..4`
   (kế hoạch 24 giờ cho tình huống sắp tới), `/api/dss/matrix` (toàn bộ ma trận phân loại).
+- Kiểm định ngoài mẫu: `src/dss/backtest.py` (thuần Python, không cần DB), API `/api/dss/backtest`, panel `BacktestPanel` trên trang DSS.
+  Huấn luyện 2011, kiểm thử 2012 (8.734 giờ) cho 2 mô hình × 3 lược đồ. Kết quả chính: mô hình tĩnh đạt 70,4% độ chính xác
+  nhưng recall mức Cao chỉ 58,5% (nhu cầu 2012 cao hơn 2011 khoảng 1,63 lần); thêm hiệu chỉnh mức đưa recall lên 90,0%
+  và độ chính xác lên 85,1%, đổi lại dư chuẩn bị tăng (8,8%). Sinh hình và bảng cho báo cáo (không cần DB):
+  `python report/scripts/make_backtest_figure.py`.
 
 ## Lưu ý khi phân tích
 - `weekday`: 0 = Chủ nhật (theo nguồn UCI). `season` theo nguồn nên một tháng có thể thuộc 2 mùa.

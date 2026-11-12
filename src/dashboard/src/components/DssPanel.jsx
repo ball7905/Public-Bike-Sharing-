@@ -4,7 +4,7 @@ import { Bar, BarChart, CartesianGrid, Cell, ReferenceLine, ResponsiveContainer,
 import { fmt, get, pct } from '../api.js'
 
 export const LEVEL_COLOR = { low: '#16a34a', medium: '#f59e0b', high: '#dc2626' }
-const LEVEL_LABEL = { low: 'Thấp', medium: 'Trung bình', high: 'Cao' }
+export const LEVEL_LABEL = { low: 'Thấp', medium: 'Trung bình', high: 'Cao' }
 const WEATHERS = [[1, 'Clear'], [2, 'Mist'], [3, 'Light rain/snow'], [4, 'Heavy rain/snow']]
 const QPRESETS = { '33-67': [1 / 3, 2 / 3, 'P33 / P67 (mặc định)'], '25-75': [0.25, 0.75, 'P25 / P75'] }
 

@@ -36,7 +36,7 @@ export default function BacktestPanel() {
 
       <div className="tablewrap"><table>
         <thead><tr>
-          <th>Cách huấn luyện</th><th>Độ chính xác</th><th>F1 trung bình</th><th>Recall mức Cao</th>
+          <th>Cách huấn luyện</th><th>Độ chính xác</th><th>F1 trung bình</th><th>Recall (trung bình 3 mức)</th>
           <th>Thiếu chuẩn bị</th><th>Dư chuẩn bị</th><th>MAE (lượt/giờ)</th>
         </tr></thead>
         <tbody>{data.experiments.map((e) => (
@@ -45,7 +45,7 @@ export default function BacktestPanel() {
             <th className="left">{e.label}</th>
             <td>{pct(e.metrics.accuracy)}</td>
             <td>{fmt(e.metrics.macro_f1, 3)}</td>
-            <td>{pct(e.metrics.per_level.high.recall)}</td>
+            <td>{pct(e.metrics.macro_recall)}</td>
             <td>{pct(e.metrics.under_prepared_rate)}</td>
             <td>{pct(e.metrics.over_prepared_rate)}</td>
             <td>{fmt(e.metrics.mae, 1)}</td>
@@ -85,11 +85,11 @@ export default function BacktestPanel() {
                 labelFormatter={(x) => `Tháng ${x}`} />
               <Legend />
               <Line yAxisId="left" type="monotone" dataKey="accuracy" name="Độ chính xác" stroke="#2563eb" strokeWidth={2} />
-              <Line yAxisId="left" type="monotone" dataKey="high_recall" name="Recall mức Cao" stroke="#dc2626" strokeWidth={2} connectNulls />
+              <Line yAxisId="left" type="monotone" dataKey="macro_recall" name="Recall (TB 3 mức)" stroke="#dc2626" strokeWidth={2} connectNulls />
               {adjusted && <Line yAxisId="right" type="monotone" dataKey="factor" name="Hệ số điều chỉnh" stroke="#6b7280" strokeDasharray="4 4" />}
             </LineChart>
           </ResponsiveContainer>
-          <p className="note">Recall mức Cao bỏ trống ở tháng không có giờ thực tế thuộc mức Cao.{adjusted && ' Hệ số điều chỉnh (trục phải) = tổng thực tế / tổng dự báo trong 30 ngày trước tháng.'}</p>
+          <p className="note">Recall (TB 3 mức) = trung bình recall của Thấp, Trung bình và Cao, mỗi mức có trọng số như nhau.{adjusted && ' Hệ số điều chỉnh (trục phải) = tổng thực tế / tổng dự báo trong 30 ngày trước tháng.'}</p>
         </div>
       </div>
     </section>

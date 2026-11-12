@@ -67,6 +67,8 @@ def test_metrics_per_level_and_macro_f1():
     assert m["per_level"]["low"]["recall"] == pytest.approx(0.5)
     assert m["per_level"]["medium"]["recall"] == pytest.approx(1 / 3)
     assert m["macro_f1"] == pytest.approx((0.4 + 1 / 3 + 0.4) / 3)
+    # macro recall = TB recall 3 mức (low 1/2, medium 1/3, high 1/3), mỗi mức trọng số như nhau
+    assert m["macro_recall"] == pytest.approx((0.5 + 1 / 3 + 1 / 3) / 3)
 
 
 def test_metrics_prepared_rates_and_missed_high():
@@ -211,8 +213,15 @@ def test_real_data_full_static_accuracy_and_thresholds(real):
     assert st["monthly"][0]["th_low"] == 55 and st["monthly"][0]["th_high"] == 174
 
 
-def test_real_data_adjusted_expanding_improves_high_recall(real):
+def test_real_data_adjusted_expanding_improves_macro_recall(real):
     _, res = real
     e = exp_by_id(res)
-    assert e["full_expanding_adjusted"]["metrics"]["per_level"]["high"]["recall"] > \
-        e["full_static"]["metrics"]["per_level"]["high"]["recall"]
+    assert e["full_expanding_adjusted"]["metrics"]["macro_recall"] > \
+        e["full_static"]["metrics"]["macro_recall"]
+
+
+@pytest.mark.parametrize("scheme", ["static", "expanding", "expanding_adjusted"])
+def test_real_data_full_model_beats_hour_only_macro_recall(real, scheme):
+    _, res = real
+    e = exp_by_id(res)
+    assert e[f"full_{scheme}"]["metrics"]["macro_recall"] > e[f"hour_only_{scheme}"]["metrics"]["macro_recall"]

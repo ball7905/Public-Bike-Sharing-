@@ -53,7 +53,7 @@ def print_latex_table(res):
         model = "DSS" if e["model"] == "full" else "Chỉ theo giờ"
         scheme = SCHEME_VI[e["scheme"]]
         print(f"{model} & {scheme} & {vn_pct(m['accuracy'])} & {vn_pct(m['macro_f1'])} & "
-              f"{vn_pct(m['per_level']['high']['recall'])} & {vn_pct(m['under_prepared_rate'])} & "
+              f"{vn_pct(m['macro_recall'])} & {vn_pct(m['under_prepared_rate'])} & "
               f"{vn_pct(m['over_prepared_rate'])} & {vn_num(m['mae'])} \\\\")
     print("% ---- hết bảng ----")
 
@@ -87,7 +87,7 @@ def main():
     print(f"Số giờ huấn luyện (tĩnh) = {res['n_train_static']:,}; số giờ kiểm thử = {res['n_test']:,}".replace(",", "."))
     print_latex_table(res)
 
-    # Hình: (a) ma trận nhầm lẫn full_static, (b) full_expanding_adjusted, (c) recall mức Cao theo tháng
+    # Hình: (a) ma trận nhầm lẫn full_static, (b) full_expanding_adjusted, (c) recall TB 3 mức theo tháng
     import matplotlib.gridspec as gridspec
     fig = plt.figure(figsize=(7.4, 6.8))
     gs = gridspec.GridSpec(2, 2, figure=fig, height_ratios=[1.0, 0.85], hspace=0.55, wspace=0.8)
@@ -103,12 +103,12 @@ def main():
     months = list(range(1, 13))
     for scheme in ("static", "expanding", "expanding_adjusted"):
         mon = exps[f"full_{scheme}"]["monthly"]
-        ys = [float("nan") if m["high_recall"] is None else m["high_recall"] for m in mon]
+        ys = [float("nan") if m["macro_recall"] is None else m["macro_recall"] for m in mon]
         ax_c.plot(months, ys, color=SCHEME_COL[scheme], lw=2, marker="o", ms=4,
                   label=SCHEME_VI[scheme])
-    ax_c.set_title("(c) Độ phủ mức Cao theo tháng (mô hình DSS)", fontsize=9.5)
+    ax_c.set_title("(c) Recall (TB 3 mức) theo tháng (mô hình DSS)", fontsize=9.5)
     ax_c.set_xticks(months), ax_c.set_xlabel("Tháng")
-    ax_c.set_ylabel("Recall mức Cao")
+    ax_c.set_ylabel("Recall (TB 3 mức)")
     ax_c.set_ylim(0, 1.05)
     ax_c.yaxis.set_major_formatter(PercentFormatter(1.0, decimals=0))
     ax_c.legend(frameon=False, ncol=3, loc="lower left", fontsize=8.5)

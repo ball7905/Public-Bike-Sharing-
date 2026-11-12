@@ -112,6 +112,7 @@ def metrics(pairs, abs_errors=()):
         "n": n,
         "accuracy": correct / n if n else 0.0,
         "macro_f1": sum(per_level[lv]["f1"] for lv in engine.LEVELS) / len(engine.LEVELS),
+        "macro_recall": sum(per_level[lv]["recall"] for lv in engine.LEVELS) / len(engine.LEVELS),
         "per_level": per_level,
         "confusion": conf,
         "under_prepared_rate": under / n if n else 0.0,
@@ -159,10 +160,11 @@ def _run_experiment(records, test, train_static, test_year, model, scheme, q_low
         factor = _level_factor(fitted, records, start) if scheme == "expanding_adjusted" else 1.0
         pairs, errs, fb = _evaluate(fitted, test_m, factor)
         mm = metrics(pairs, errs)
-        high = mm["per_level"]["high"]
+        present = [lv for lv in engine.LEVELS if mm["per_level"][lv]["support"]]
+        macro_recall = (sum(mm["per_level"][lv]["recall"] for lv in present) / len(present)) if present else None
         monthly.append({
             "month": m, "n": mm["n"], "accuracy": mm["accuracy"],
-            "high_recall": high["recall"] if high["support"] else None,
+            "macro_recall": macro_recall,
             "factor": factor, "th_low": fitted["th"]["low"], "th_high": fitted["th"]["high"],
         })
         all_pairs += pairs

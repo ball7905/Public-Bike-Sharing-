@@ -227,7 +227,7 @@ Các phân tích ở trên đều dùng cùng dữ liệu để xây dựng ngư
 \begin{itemize}
     \item \textbf{Độ chính xác}: tỷ lệ giờ có mức dự báo trùng mức thực tế.
     \item \textbf{F1 macro}: trung bình F1 của ba mức, không để mức đông giờ át các mức ít giờ hơn.
-    \item \textbf{Recall mức Cao}: tỷ lệ giờ thực tế ở mức Cao được dự báo đúng là Cao. Đây là chỉ số quan trọng nhất cho vận hành.
+    \item \textbf{Recall (trung bình 3 mức)}: trung bình recall của Thấp, Trung bình và Cao, trong đó recall của một mức là tỷ lệ giờ thực tế thuộc mức đó được dự báo đúng. Mỗi mức có trọng số như nhau, nên mức đông giờ không chi phối kết quả. Recall từng mức được trình bày trong Bảng~\ref{tab:backtest-recall}.
     \item \textbf{Tỷ lệ thiếu chuẩn bị}: tỷ lệ giờ mà mức thực tế cao hơn mức dự báo, tức là chuẩn bị chưa đủ.
     \item \textbf{Tỷ lệ dư chuẩn bị}: tỷ lệ giờ mà mức dự báo cao hơn mức thực tế, tức là chuẩn bị thừa.
     \item \textbf{MAE}: sai số tuyệt đối trung bình giữa lượt thuê dự báo (sau hiệu chỉnh) và lượt thuê thực tế, đơn vị lượt/giờ.
@@ -241,29 +241,43 @@ Các phân tích ở trên đều dùng cùng dữ liệu để xây dựng ngư
 \small
 \begin{tabularx}{\textwidth}{|l|X|c|c|c|c|c|c|}
 \hline
-\textbf{Mô hình} & \textbf{Lược đồ} & \textbf{Chính xác} & \textbf{F1 macro} & \textbf{Recall Cao} & \textbf{Thiếu chuẩn bị} & \textbf{Dư chuẩn bị} & \textbf{MAE} \\ \hline
-DSS & Tĩnh & 70,4\% & 71,3\% & 58,5\% & 25,2\% & 4,4\% & 103,8 \\ \hline
-DSS & Mở rộng & 73,7\% & 74,5\% & 62,6\% & 21,1\% & 5,2\% & 87,9 \\ \hline
-DSS & Mở rộng + hiệu chỉnh mức & 85,1\% & 83,7\% & 90,0\% & 6,1\% & 8,8\% & 51,6 \\ \hline
-Chỉ theo giờ & Tĩnh & 66,6\% & 66,7\% & 61,1\% & 24,4\% & 9,0\% & 118,2 \\ \hline
-Chỉ theo giờ & Mở rộng & 69,7\% & 69,6\% & 67,6\% & 19,1\% & 11,1\% & 106,3 \\ \hline
-Chỉ theo giờ & Mở rộng + hiệu chỉnh mức & 77,6\% & 74,3\% & 90,5\% & 7,1\% & 15,3\% & 84,1 \\ \hline
+\textbf{Mô hình} & \textbf{Lược đồ} & \textbf{Chính xác} & \textbf{F1 macro} & \textbf{Recall} & \textbf{Thiếu chuẩn bị} & \textbf{Dư chuẩn bị} & \textbf{MAE} \\ \hline
+DSS & Tĩnh & 70,4\% & 71,3\% & 75,0\% & 25,2\% & 4,4\% & 103,8 \\ \hline
+DSS & Mở rộng & 73,7\% & 74,5\% & 76,9\% & 21,1\% & 5,2\% & 87,9 \\ \hline
+DSS & Mở rộng + hiệu chỉnh mức & 85,1\% & 83,7\% & 83,4\% & 6,1\% & 8,8\% & 51,6 \\ \hline
+Chỉ theo giờ & Tĩnh & 66,6\% & 66,7\% & 68,4\% & 24,4\% & 9,0\% & 118,2 \\ \hline
+Chỉ theo giờ & Mở rộng & 69,7\% & 69,6\% & 70,1\% & 19,1\% & 11,1\% & 106,3 \\ \hline
+Chỉ theo giờ & Mở rộng + hiệu chỉnh mức & 77,6\% & 74,3\% & 73,3\% & 7,1\% & 15,3\% & 84,1 \\ \hline
 \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth]{figures/backtest.pdf}
-\caption{Kiểm định ngoài mẫu của mô hình DSS: (a) ma trận nhầm lẫn lược đồ tĩnh, (b) lược đồ mở rộng + hiệu chỉnh mức (số đếm và tỷ lệ theo hàng thực tế), (c) recall mức Cao theo từng tháng của năm 2012}
+\caption{Kiểm định ngoài mẫu của mô hình DSS: (a) ma trận nhầm lẫn lược đồ tĩnh, (b) lược đồ mở rộng + hiệu chỉnh mức (số đếm và tỷ lệ theo hàng thực tế), (c) recall trung bình 3 mức theo từng tháng của năm 2012}
 \label{fig:backtest}
 \end{figure}
 
+\begin{table}[H]
+\centering
+\caption{Recall theo từng mức của mô hình DSS (năm 2012)}
+\label{tab:backtest-recall}
+\small
+\begin{tabularx}{\textwidth}{|l|c|c|c|}
+\hline
+\textbf{Mức thực tế} & \textbf{Tĩnh} & \textbf{Mở rộng} & \textbf{Mở rộng + hiệu chỉnh mức} \\ \hline
+Thấp & 90,5\% & 89,2\% & 87,0\% \\ \hline
+Trung bình & 75,9\% & 78,9\% & 73,3\% \\ \hline
+Cao & 58,5\% & 62,6\% & 90,0\% \\ \hline
+\end{tabularx}
+\end{table}
+
 \noindent Nhận xét:
 \begin{itemize}
-    \item \textbf{Mô hình tĩnh đạt 70,4\% độ chính xác nhưng bỏ sót đúng các giờ cao điểm}. Có 1.911 giờ thực tế ở mức Cao bị dự báo là Trung bình (Hình~\ref{fig:backtest}a), và recall mức Cao chỉ đạt 58,5\%. Nguyên nhân là nhu cầu năm 2012 cao hơn năm 2011 khoảng 1,63 lần (lượt thuê trung bình theo giờ), trong khi mô hình vẫn dùng mức trung bình của 2011. Vì vậy DSS dự báo thiếu đúng vào lúc bận rộn nhất: tỷ lệ thiếu chuẩn bị là 25,2\%.
-    \item \textbf{Huấn luyện lại hằng tháng giúp một phần}: độ chính xác tăng lên 73,7\% và recall mức Cao lên 62,6\%. Dữ liệu gần hơn có phản ánh mức tăng, nhưng mô hình vẫn là trung bình lịch sử nên luôn chậm hơn một bước so với nhu cầu đang tăng nhanh (tháng 4--11, Hình~\ref{fig:backtest}c).
-    \item \textbf{Hiệu chỉnh mức cho kết quả rõ rệt nhất}: recall mức Cao đạt 90,0\% (ổn định ở 91--98\% trong các tháng 4--11), độ chính xác đạt 85,1\%, tỷ lệ thiếu chuẩn bị giảm còn 6,1\%. Cái giá là tỷ lệ dư chuẩn bị tăng từ 5,2\% lên 8,8\%. Đánh đổi này chấp nhận được vì chuẩn bị thiếu vào giờ cao điểm tốn kém hơn nhiều so với chuẩn bị thừa vài giờ: thiếu xe làm người dùng bỏ đi, còn thừa chỉ tốn công điều phối.
-    \item \textbf{Mô hình DSS đầy đủ chính xác hơn mô hình chỉ theo giờ ở cả ba lược đồ}: độ chính xác cao hơn 3,8--7,5 điểm phần trăm, F1 macro và MAE đều tốt hơn, và tỷ lệ dư chuẩn bị thấp hơn rõ rệt (4,4\% so với 9,0\% với lược đồ tĩnh). Mô hình chỉ theo giờ có recall mức Cao hơn một chút (61,1\% so với 58,5\% với lược đồ tĩnh) nhưng đổi lại dự báo cao quá mức thường xuyên hơn. Điều này cho thấy loại ngày và thời tiết có giá trị dự báo thực sự, không chỉ làm mô hình phức tạp hơn.
+    \item \textbf{Mô hình tĩnh đạt 70,4\% độ chính xác và recall trung bình 75,0\%, nhưng bỏ sót đúng các giờ cao điểm}. Có 1.911 giờ thực tế ở mức Cao bị dự báo là Trung bình (Hình~\ref{fig:backtest}a), và chỉ bắt được 58,5\% số giờ Cao (Bảng~\ref{tab:backtest-recall}). Nguyên nhân là nhu cầu năm 2012 cao hơn năm 2011 khoảng 1,63 lần (lượt thuê trung bình theo giờ), trong khi mô hình vẫn dùng mức trung bình của 2011. Vì vậy DSS dự báo thiếu đúng vào lúc bận rộn nhất: tỷ lệ thiếu chuẩn bị là 25,2\%.
+    \item \textbf{Huấn luyện lại hằng tháng giúp một phần}: độ chính xác tăng lên 73,7\% và recall trung bình lên 76,9\%. Dữ liệu gần hơn có phản ánh mức tăng, nhưng mô hình vẫn là trung bình lịch sử nên luôn chậm hơn một bước so với nhu cầu đang tăng nhanh (tháng 4--11, Hình~\ref{fig:backtest}c).
+    \item \textbf{Hiệu chỉnh mức cho kết quả rõ rệt nhất}: recall trung bình đạt 83,4\%, độ chính xác đạt 85,1\%, tỷ lệ thiếu chuẩn bị giảm còn 6,1\%. Riêng mức Cao, recall tăng từ 58,5\% lên 90,0\% (ổn định ở 91--98\% trong các tháng 4--11). Cái giá là recall của mức Thấp và Trung bình giảm nhẹ xuống 87,0\% và 73,3\% (so với 90,5\% và 75,9\%), và tỷ lệ dư chuẩn bị tăng từ 5,2\% lên 8,8\%. Đánh đổi này chấp nhận được vì chuẩn bị thiếu vào giờ cao điểm tốn kém hơn nhiều so với chuẩn bị thừa vài giờ: thiếu xe làm người dùng bỏ đi, còn thừa chỉ tốn công điều phối.
+    \item \textbf{Mô hình DSS đầy đủ tốt hơn mô hình chỉ theo giờ ở cả ba lược đồ}: độ chính xác cao hơn 3,8--7,5 điểm phần trăm, F1 macro, recall trung bình và MAE đều tốt hơn, và tỷ lệ dư chuẩn bị thấp hơn rõ rệt (4,4\% so với 9,0\% với lược đồ tĩnh). Điều này cho thấy loại ngày và thời tiết có giá trị dự báo thực sự, không chỉ làm mô hình phức tạp hơn.
 \end{itemize}
 
 \noindent Hạn chế của kiểm định:

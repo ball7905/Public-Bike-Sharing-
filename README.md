@@ -64,7 +64,7 @@ python -m pytest tests -q           # cần DB đã nạp ETL
   (kế hoạch 24 giờ cho tình huống sắp tới), `/api/dss/matrix` (toàn bộ ma trận phân loại).
 - Kiểm định ngoài mẫu: `src/dss/backtest.py` (thuần Python, không cần DB), API `/api/dss/backtest`, panel `BacktestPanel` trên trang DSS.
   Huấn luyện 2011, kiểm thử 2012 (8.734 giờ) cho 2 mô hình × 3 lược đồ. Kết quả chính: mô hình tĩnh đạt 70,4% độ chính xác
-  nhưng recall mức Cao chỉ 58,5% (nhu cầu 2012 cao hơn 2011 khoảng 1,63 lần); thêm hiệu chỉnh mức đưa recall lên 90,0%
+  nhưng recall trung bình 3 mức chỉ 75,0% (phát hiện giờ Cao 58,5%; nhu cầu 2012 cao hơn 2011 khoảng 1,63 lần); thêm hiệu chỉnh mức đưa recall trung bình lên 83,4% (phát hiện giờ Cao 58,5% -> 90,0%)
   và độ chính xác lên 85,1%, đổi lại dư chuẩn bị tăng (8,8%). Sinh hình và bảng cho báo cáo (không cần DB):
   `python report/scripts/make_backtest_figure.py`.
 

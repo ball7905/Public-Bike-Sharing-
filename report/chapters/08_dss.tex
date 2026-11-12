@@ -207,6 +207,99 @@ P33,3/P66,7, kỳ lịch sử 2012 & 98 & 284 & 8 & 07--09h; 16--20h \\ \hline
 \end{table}
 Ngưỡng chặt hơn (P75) chỉ loại bớt giờ ``rìa'' của khung (9h và 20h), còn lõi cao điểm 7--8h và 16--19h không đổi. Khi chỉ dùng dữ liệu 2012 (nhu cầu cao hơn 2011 khoảng 65\%), ngưỡng tăng tương ứng nhưng các khung cảnh báo giữ nguyên. Kết luận: \textbf{các khung giờ ưu tiên là ổn định}, không phải hệ quả của việc chọn ngưỡng - tăng độ tin cậy của khuyến nghị.
 
+\sect{Kiểm định ngoài mẫu (backtest)}\label{sec:dss-backtest}
+Các phân tích ở trên đều dùng cùng dữ liệu để xây dựng ngưỡng và nhận xét kết quả, nên chưa cho biết mô hình dự báo đúng đến đâu với những giờ chưa từng thấy. Mục này kiểm định mô hình theo đúng cách sử dụng thực tế: huấn luyện trên quá khứ, dự báo \textbf{mức} nhu cầu cho từng giờ của năm sau, rồi so với mức thực tế.
+
+\subsect{Thiết lập}
+\begin{itemize}
+    \item \textbf{Dữ liệu}: huấn luyện trên năm 2011 (8.645 giờ), kiểm thử trên năm 2012 (8.734 giờ). Thời tiết, nhiệt độ và loại ngày của năm 2012 được lấy theo thực tế, xem thêm phần hạn chế ở cuối mục.
+    \item \textbf{Mức thực tế}: phân loại lượt thuê thực tế của giờ đó bằng \textbf{cùng ngưỡng} đã dùng để phân loại dự báo, nên hai phía so sánh cùng một thước đo.
+    \item \textbf{Ba mô hình}:
+    \begin{itemize}
+        \item \textit{DSS}: giờ $\times$ loại ngày $\times$ thời tiết, giống mô hình trong Mục~\ref{sec:dss-model}.
+        \item \textit{DSS + nhiệt độ}: thêm khoảng nhiệt độ 10°C. Nhiệt độ là biến liên tục có tương quan mạnh với nhu cầu (ở mức ngày $r = 0{,}63$, xem Chương~\ref{sec:results}, câu Q2.2), và trong vận hành nhiệt độ có thể lấy từ dự báo thời tiết. Chia thành khoảng 10°C giúp mô hình tra cứu vẫn dễ giải thích. Khi nhóm giờ $\times$ loại ngày $\times$ thời tiết $\times$ khoảng nhiệt chưa có dữ liệu, mô hình dùng lần lượt nhóm DSS (không có nhiệt độ), trung bình theo giờ, rồi trung bình toàn bộ.
+        \item \textit{Chỉ theo giờ}: mô hình cơ sở, để kiểm tra xem loại ngày và thời tiết có giá trị dự báo thực sự hay không.
+    \end{itemize}
+    \item \textbf{Ba lược đồ huấn luyện}:
+    \begin{itemize}
+        \item \textit{Tĩnh}: huấn luyện một lần trên 2011, dùng cho cả năm 2012.
+        \item \textit{Mở rộng}: đầu mỗi tháng huấn luyện lại trên mọi dữ liệu trước ngày 1 của tháng đó; không dùng dữ liệu tương lai.
+        \item \textit{Mở rộng + hiệu chỉnh mức}: như trên, nhân giá trị dự báo với hệ số $f = \dfrac{\sum \text{lượt thuê thực tế}}{\sum \text{lượt thuê dự báo}}$ tính trên 30 ngày trước tháng dự báo, kẹp trong khoảng $[0{,}5;\ 2{,}0]$. Ngưỡng phân loại không thay đổi.
+    \end{itemize}
+\end{itemize}
+
+\subsect{Chỉ số đánh giá}
+\begin{itemize}
+    \item \textbf{Độ chính xác}: tỷ lệ giờ có mức dự báo trùng mức thực tế.
+    \item \textbf{F1 macro}: trung bình F1 của ba mức, không để mức đông giờ át các mức ít giờ hơn.
+    \item \textbf{Recall (trung bình 3 mức)}: trung bình recall của Thấp, Trung bình và Cao, trong đó recall của một mức là tỷ lệ giờ thực tế thuộc mức đó được dự báo đúng. Mỗi mức có trọng số như nhau, nên mức đông giờ không chi phối kết quả. Recall từng mức được trình bày trong Bảng~\ref{tab:backtest-recall}.
+    \item \textbf{Tỷ lệ thiếu chuẩn bị}: tỷ lệ giờ mà mức thực tế cao hơn mức dự báo, tức là chuẩn bị chưa đủ.
+    \item \textbf{Tỷ lệ dư chuẩn bị}: tỷ lệ giờ mà mức dự báo cao hơn mức thực tế, tức là chuẩn bị thừa.
+    \item \textbf{MAE}: sai số tuyệt đối trung bình giữa lượt thuê dự báo (sau hiệu chỉnh) và lượt thuê thực tế, đơn vị lượt/giờ.
+\end{itemize}
+
+\subsect{Kết quả}
+\begin{table}[H]
+\centering
+\caption{Kết quả kiểm định ngoài mẫu: huấn luyện 2011, kiểm thử 2012 (8.734 giờ)}
+\label{tab:backtest}
+\small
+\begin{tabularx}{\textwidth}{|l|X|c|c|c|c|c|c|}
+\hline
+\textbf{Mô hình} & \textbf{Lược đồ} & \shortstack{\textbf{Chính}\\\textbf{xác}} & \shortstack{\textbf{F1}\\\textbf{macro}} & \textbf{Recall} & \shortstack{\textbf{Thiếu}\\\textbf{chuẩn bị}} & \shortstack{\textbf{Dư}\\\textbf{chuẩn bị}} & \textbf{MAE} \\ \hline
+DSS & Tĩnh & 70,4\% & 71,3\% & 75,0\% & 25,2\% & 4,4\% & 103,8 \\ \hline
+DSS & Mở rộng & 73,7\% & 74,5\% & 76,9\% & 21,1\% & 5,2\% & 87,9 \\ \hline
+DSS & Mở rộng + hiệu chỉnh mức & 85,1\% & 83,7\% & 83,4\% & 6,1\% & 8,8\% & 51,6 \\ \hline
+DSS + nhiệt độ & Tĩnh & 75,4\% & 74,5\% & 78,0\% & 22,6\% & 2,1\% & 91,1 \\ \hline
+DSS + nhiệt độ & Mở rộng & 79,0\% & 78,7\% & 81,1\% & 18,3\% & 2,6\% & 74,5 \\ \hline
+DSS + nhiệt độ & Mở rộng + hiệu chỉnh mức & 86,6\% & 85,3\% & 85,6\% & 7,4\% & 6,0\% & 44,7 \\ \hline
+Chỉ theo giờ & Tĩnh & 66,6\% & 66,7\% & 68,4\% & 24,4\% & 9,0\% & 118,2 \\ \hline
+Chỉ theo giờ & Mở rộng & 69,7\% & 69,6\% & 70,1\% & 19,1\% & 11,1\% & 106,3 \\ \hline
+Chỉ theo giờ & Mở rộng + hiệu chỉnh mức & 77,6\% & 74,3\% & 73,3\% & 7,1\% & 15,3\% & 84,1 \\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{figures/backtest.pdf}
+\caption{Kiểm định ngoài mẫu của mô hình DSS: (a) ma trận nhầm lẫn lược đồ tĩnh, (b) lược đồ mở rộng + hiệu chỉnh mức (số đếm và tỷ lệ theo hàng thực tế), (c) recall trung bình 3 mức theo từng tháng của năm 2012, với bốn đường: DSS tĩnh, DSS mở rộng, DSS mở rộng + hiệu chỉnh mức, và DSS + nhiệt độ mở rộng + hiệu chỉnh mức}
+\label{fig:backtest}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\caption{Recall theo từng mức của mô hình DSS (năm 2012)}
+\label{tab:backtest-recall}
+\small
+\begin{tabularx}{\textwidth}{|>{\raggedright\arraybackslash}X|*{3}{>{\centering\arraybackslash}X|}}
+\hline
+\textbf{Mức thực tế} & \textbf{Tĩnh} & \textbf{Mở rộng} & \textbf{Mở rộng + hiệu chỉnh mức} \\ \hline
+Thấp & 90,5\% & 89,2\% & 87,0\% \\ \hline
+Trung bình & 75,9\% & 78,9\% & 73,3\% \\ \hline
+Cao & 58,5\% & 62,6\% & 90,0\% \\ \hline
+\end{tabularx}
+\end{table}
+
+\noindent Nhận xét:
+\begin{itemize}
+    \item \textbf{Mô hình tĩnh đạt 70,4\% độ chính xác và recall trung bình 75,0\%, nhưng bỏ sót đúng các giờ cao điểm}. Có 1.911 giờ thực tế ở mức Cao bị dự báo là Trung bình (Hình~\ref{fig:backtest}a), và chỉ bắt được 58,5\% số giờ Cao (Bảng~\ref{tab:backtest-recall}). Nguyên nhân là nhu cầu năm 2012 cao hơn năm 2011 khoảng 1,63 lần (lượt thuê trung bình theo giờ), trong khi mô hình vẫn dùng mức trung bình của 2011. Vì vậy DSS dự báo thiếu đúng vào lúc bận rộn nhất: tỷ lệ thiếu chuẩn bị là 25,2\%.
+    \item \textbf{Huấn luyện lại hằng tháng giúp một phần}: độ chính xác tăng lên 73,7\% và recall trung bình lên 76,9\%. Dữ liệu gần hơn có phản ánh mức tăng, nhưng mô hình vẫn là trung bình lịch sử nên luôn chậm hơn một bước so với nhu cầu đang tăng nhanh (tháng 4--11, Hình~\ref{fig:backtest}c). Mức Cao vẫn chỉ đạt recall 62,6\%: có 1.595 giờ Cao bị dự báo là Trung bình.
+    \item \textbf{Hiệu chỉnh mức cho kết quả rõ rệt nhất}: recall trung bình đạt 83,4\%, độ chính xác đạt 85,1\%, tỷ lệ thiếu chuẩn bị giảm còn 6,1\%. Riêng mức Cao, recall tăng từ 58,5\% lên 90,0\% (ổn định ở 91--98\% trong các tháng 4--11). Cái giá là recall của mức Thấp và Trung bình giảm nhẹ xuống 87,0\% và 73,3\% (so với 90,5\% và 75,9\%), và tỷ lệ dư chuẩn bị tăng từ 4,4\% lên 8,8\%. Đánh đổi này chấp nhận được vì chuẩn bị thiếu vào giờ cao điểm tốn kém hơn nhiều so với chuẩn bị thừa vài giờ: thiếu xe làm người dùng bỏ đi, còn thừa chỉ tốn công điều phối.
+    \item \textbf{Mô hình DSS đầy đủ tốt hơn mô hình chỉ theo giờ ở cả ba lược đồ}: độ chính xác cao hơn 3,8--7,5 điểm phần trăm, F1 macro, recall trung bình và MAE đều tốt hơn, và tỷ lệ dư chuẩn bị thấp hơn rõ rệt (4,4\% so với 9,0\% với lược đồ tĩnh). Điều này cho thấy loại ngày và thời tiết có giá trị dự báo thực sự, không chỉ làm mô hình phức tạp hơn.
+    \item \textbf{Nhiệt độ cải thiện kết quả ở cả ba lược đồ}: với lược đồ tĩnh, độ chính xác tăng từ 70,4\% lên 75,4\% (+5,0 điểm phần trăm), recall trung bình từ 75,0\% lên 78,0\%, và MAE giảm khoảng 12\% (từ 103,8 xuống 91,1 lượt/giờ). Với lược đồ mở rộng, mức tăng tương tự: độ chính xác +5,3 điểm (73,7\% lên 79,0\%), recall trung bình từ 76,9\% lên 81,1\%, MAE giảm khoảng 15\%. Khi có hiệu chỉnh mức, mức tăng thu hẹp còn khoảng +1,5 điểm phần trăm về độ chính xác (85,1\% lên 86,6\%; recall trung bình 83,4\% lên 85,6\%; MAE giảm khoảng 13\%), vì hiệu chỉnh mức đã bù một phần tín hiệu theo mùa mà nhiệt độ mang lại.
+    \item \textbf{Chọn khoảng 10°C thay vì 5°C}: với lược đồ mở rộng, khoảng 5°C cho độ chính xác tương đương, nhưng số giờ phải dùng phương án dự phòng tăng từ 22 lên 60 giờ. Khoảng 10°C vì vậy cho kết quả tương đương với ít giờ dự phòng hơn, và bảng tra vẫn gọn (bốn khoảng). Con số 5°C đến từ thử nghiệm sơ bộ, không nằm trong bảng.
+    \item \textbf{Độ ẩm không cải thiện kết quả}: thử nghiệm bổ sung, không đưa vào bảng, thêm ngưỡng độ ẩm từ 70\% trở lên vào mô hình nhiệt độ. Lược đồ tĩnh: độ chính xác 75,2\% (so với 75,4\%) và recall trung bình 77,7\% (so với 78,0\%); khi có hiệu chỉnh mức: 86,4\% (so với 86,6\%) và 85,3\% (so với 85,6\%). Không có mức tăng nào, nên mô hình không đưa độ ẩm vào. Kết quả này khớp với phân tích ở Chương~\ref{sec:results}: tương quan giờ của độ ẩm chủ yếu là hiệu ứng theo giờ trong ngày, ở mức ngày chỉ còn $r = -0{,}11$.
+\end{itemize}
+
+\noindent Hạn chế của kiểm định:
+\begin{itemize}
+    \item Kiểm định dùng \textbf{thời tiết và nhiệt độ thực tế} của năm 2012, tương đương với một dự báo hoàn hảo. Hiệu năng khi vận hành thực tế sẽ thấp hơn, phụ thuộc chất lượng dự báo thời tiết và nhiệt độ đầu vào.
+    \item Hai nhóm lược đồ dùng \textbf{ngưỡng khác nhau}: lược đồ tĩnh gắn nhãn thực tế theo ngưỡng 2011, còn lược đồ mở rộng tính lại ngưỡng từ lịch sử trước mỗi tháng. Vì vậy các con số giữa hai nhóm không hoàn toàn cùng một thước đo; so sánh chính xác nhất là giữa các mô hình trong cùng một lược đồ.
+    \item Chỉ có \textbf{một năm kiểm thử}, nên chưa đo được độ ổn định qua nhiều năm.
+\end{itemize}
+
+Kiểm định được tích hợp vào hệ thống: API \code{GET /api/dss/backtest} (nhận \code{q\_low}, \code{q\_high}) trả về toàn bộ 9 thí nghiệm, và panel \code{BacktestPanel} trên trang DSS hiển thị cùng các chỉ số. Mã nguồn nằm ở \code{src/dss/backtest.py}; hình và bảng trên được sinh bởi \code{report/scripts/make\_backtest\_figure.py}.
+
 \sect{Giao diện DSS}\label{sec:dss-ui}
 Giao diện DSS nằm ở trang riêng ``Hỗ trợ quyết định'' của dashboard (\code{\#/dss}, Hình~\ref{fig:dash-dss-top}, \ref{fig:dash-dss-matrix}) và cho phép người dùng: chọn kỳ lịch sử bằng bộ lọc dropdown Năm/Mùa (trang này chỉ hiện hai bộ lọc đó); chọn \textbf{loại ngày sắp tới} và \textbf{thời tiết dự kiến}; chọn cấu hình ngưỡng. Hệ thống hiển thị bảng khảo sát phân phối, bảng quy tắc với tỷ lệ giờ quan sát mỗi mức, các thẻ cảnh báo, biểu đồ 24 giờ tô màu theo mức với hai đường ngưỡng, bảng chi tiết (nhu cầu, hệ số so với trung bình, số giờ quan sát, tỷ lệ người dùng đăng ký, mức, khuyến nghị) và ma trận phân loại toàn bộ.
 

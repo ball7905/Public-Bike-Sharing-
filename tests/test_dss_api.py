@@ -61,3 +61,15 @@ def test_dss_validation_errors():
     assert c.get("/api/dss/plan", params={"day_group": "holiday"}).status_code == 422
     assert c.get("/api/dss/thresholds", params={"q_low": 0.8, "q_high": 0.5}).status_code == 422
     assert c.get("/api/dss/thresholds", params={"year": 1999}).status_code == 422
+
+
+def test_backtest_out_of_sample():
+    b = c.get("/api/dss/backtest").json()
+    assert len(b["experiments"]) == 9                    # 3 mô hình x 3 cách huấn luyện
+    assert b["experiments"][0]["id"] == "full_static"
+    assert b["test_year"] == 2012
+    assert b["n_test"] == int((HOUR["dteday"].str.startswith("2012")).sum())   # số giờ 2012 trong hour.csv
+    full_static = b["experiments"][0]
+    assert 0.68 < full_static["metrics"]["accuracy"] < 0.72
+    assert len(full_static["monthly"]) == 12
+    assert c.get("/api/dss/backtest", params={"q_low": 0.8, "q_high": 0.5}).status_code == 422

@@ -3,7 +3,8 @@
 \chap{Kiểm thử và đánh giá}\label{sec:eval}
 
 \sect{Kiểm thử tự động}
-Bộ kiểm thử dùng \code{pytest} và \code{FastAPI TestClient}, chạy bằng \code{python -m pytest tests -q}. Điểm chính: các kiểm thử không chỉ kiểm tra API ``chạy được'' mà \textbf{đối chiếu kết quả với dữ liệu nguồn} được tính độc lập bằng Pandas từ \code{hour.csv}. Kết quả lần chạy cuối: \textbf{33/33 kiểm thử đạt}.
+Bộ kiểm thử dùng \code{pytest} và \code{FastAPI TestClient}, chạy bằng \code{python -m pytest tests -q}. Điểm chính: các kiểm thử không chỉ kiểm tra API ``chạy được'' mà \textbf{đối chiếu kết quả với dữ liệu nguồn} được tính độc lập bằng Pandas từ \code{hour.csv}.
+Kết quả lần chạy cuối: \textbf{60/60 kiểm thử đạt}.
 
 \begin{table}[H]
 \centering
@@ -17,7 +18,8 @@ Bộ kiểm thử dùng \code{pytest} và \code{FastAPI TestClient}, chạy bằ
 \code{test\_api.py} & 8 & KPI khớp tổng nguồn; roll-up nhất quán (tổng các quý = tổng năm); drill-down tới ngày, giờ; slice/dice thu hẹp đúng; tổng pivot = tổng toàn bộ; lỗi tham số trả về 422; chuỗi SQL injection vô hại \\ \hline
 \code{test\_climate.py} & 4 & Số giờ, trung bình mỗi khoảng nhiệt độ và độ ẩm khớp Pandas; tổng số giờ các khoảng nhiệt độ = 17.379, độ ẩm = 17.357 (loại 22 giờ NULL, không bị dồn vào khoảng 90--100\%); cờ ít mẫu đúng; hệ số tương quan khớp Pandas; bộ lọc có hiệu lực \\ \hline
 \code{test\_dss\_engine.py} & 7 & (Không cần CSDL) biên phân loại (bằng ngưỡng là Trung bình); ngưỡng không hợp lệ bị từ chối; mỗi mức có khuyến nghị; kế hoạch đủ 24 giờ, mỗi giờ đúng một mức; danh sách ưu tiên giảm dần; gộp khung cảnh báo, giờ chuẩn bị qua nửa đêm; xử lý nhóm thiếu/ít dữ liệu \\ \hline
-\code{test\_dss\_api.py} & 5 & Ngưỡng khớp phân vị tính bằng Pandas; mỗi mức chiếm 30--37\% giờ quan sát; trung bình nhóm khớp nguồn; giờ 8h và 17h ngày làm việc được cảnh báo; ngưỡng thay đổi theo kỳ lịch sử; bộ lọc ngoài kỳ không ảnh hưởng DSS; mức thời tiết 4 bị gắn cờ; lỗi tham số trả về 422 \\ \hline
+\code{test\_dss\_api.py} & 6 & Ngưỡng khớp phân vị tính bằng Pandas; mỗi mức chiếm 30--37\% giờ quan sát; trung bình nhóm khớp nguồn; giờ 8h và 17h ngày làm việc được cảnh báo; ngưỡng thay đổi theo kỳ lịch sử; bộ lọc ngoài kỳ không ảnh hưởng DSS; mức thời tiết 4 bị gắn cờ; lỗi tham số trả về 422; API backtest trả về 9 thí nghiệm, huấn luyện 2011 và kiểm thử 2012 đúng số giờ trong \code{hour.csv} \\ \hline
+\code{test\_dss\_backtest.py} & 26 & (Không cần CSDL) phân vị nội suy tuyến tính; các chỉ số độ chính xác, F1, recall trung bình 3 mức, tỷ lệ thiếu/dư chuẩn bị, MAE và ma trận nhầm lẫn; chuỗi dự phòng giờ $\rightarrow$ toàn bộ; lược đồ tĩnh chỉ dùng năm trước; lược đồ mở rộng không dùng dữ liệu tháng hiện tại hoặc sau; hệ số hiệu chỉnh bị kẹp trong $[0{,}5;\ 2{,}0]$; trên \code{hour.csv} thật: thứ tự 9 thí nghiệm, tổng ma trận khớp số giờ kiểm thử, ngưỡng và độ chính xác tĩnh khớp, hiệu chỉnh mức làm tăng recall trung bình 3 mức, nhiệt độ cải thiện độ chính xác và recall trung bình ở cả ba lược đồ, và mô hình DSS đầy đủ vượt mô hình chỉ theo giờ về recall trung bình ở cả ba lược đồ \\ \hline
 \end{tabularx}
 \end{table}
 Ngoài ra, quy trình ETL tự đối chiếu 13 tiêu chí với cả hai tệp nguồn (Bảng~\ref{tab:etl-validate}), và các truy vấn trong \code{sql/03\_olap\_queries.sql}, \code{sql/04\_dss\_queries.sql} đã được chạy thử trên kho.
@@ -80,11 +82,11 @@ NFR03 & Đạt & Mọi yêu cầu dưới 0,25 giây (Bảng~\ref{tab:perf}) \\ 
 NFR04 & Đạt một phần & Thêm chiều, thêm thuộc tính dễ dàng nhờ Star Schema và view; nhưng ETL hiện nạp lại toàn bộ, chưa nạp tăng dần \\ \hline
 NFR05 & Đạt & ETL, SQL, API, DSS, giao diện là các module riêng \\ \hline
 NFR06 & Đạt & Bộ lọc chip áp dụng cho mọi biểu đồ, chú thích độ tin cậy; chưa khảo sát người dùng thật \\ \hline
-NFR07 & Đạt & Mô hình DSS kiểm thử và bước Transform kiểm thử không cần CSDL; 33 kiểm thử tự động \\ \hline
+NFR07 & Đạt & Mô hình DSS và kiểm định ngoài mẫu kiểm thử không cần CSDL; 60 kiểm thử tự động \\ \hline
 \end{tabularx}
 \end{table}
 
 \sect{Đánh giá thành phần DSS}
 \textbf{Điểm mạnh}: mô hình minh bạch, giải thích được (người vận hành hiểu vì sao một giờ là ``Cao''); ngưỡng xuất phát từ khảo sát phân phối và có thể điều chỉnh; kết quả ổn định khi thay đổi ngưỡng và kỳ lịch sử (mục~\ref{sec:dss-sensitivity}); trung thực về độ tin cậy khi dữ liệu thưa; tích hợp trực tiếp với kho dữ liệu nên tự cập nhật khi nạp dữ liệu mới.
 
-\textbf{Hạn chế}: mô hình là mô hình tra cứu theo nhóm (trung bình lịch sử), chưa phải mô hình dự báo, nên không phản ánh xu hướng tăng trưởng trong kỳ và không xét đồng thời nhiệt độ, độ ẩm; chưa được đánh giá bằng dữ liệu ngoài mẫu (ví dụ dùng 2011 xác định mức, kiểm tra trên 2012); khuyến nghị dừng ở mức độ, chưa có số xe cụ thể.
+\textbf{Hạn chế}: mô hình là mô hình tra cứu theo nhóm (trung bình lịch sử), chưa phải mô hình dự báo, chưa xét đồng thời nhiều biến liên tục. Nhiệt độ đã được thử nghiệm trong kiểm định và cải thiện kết quả ngoài mẫu; độ ẩm đã thử và không cải thiện; gió chưa được thử; màn hình kế hoạch DSS hiện chưa nhận nhiệt độ dự báo làm đầu vào. Mô hình đã được kiểm định ngoài mẫu (mục~\ref{sec:dss-backtest}): huấn luyện trên 2011, kiểm tra trên 2012, lược đồ tĩnh chỉ đạt recall trung bình 3 mức 75,0\% (recall mức Cao 58,5\%) vì bỏ qua tăng trưởng nhu cầu (khoảng 1,63 lần). Hạn chế còn lại là mô hình chỉ theo kịp tăng trưởng khi bật hiệu chỉnh mức (recall trung bình 83,4\%, recall mức Cao 90,0\%, đổi lại dư chuẩn bị nhiều hơn); khuyến nghị dừng ở mức độ, chưa có số xe cụ thể.

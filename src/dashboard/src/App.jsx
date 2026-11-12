@@ -5,6 +5,7 @@ import KpiCards from './components/KpiCards.jsx'
 import DrillChart from './components/DrillChart.jsx'
 import PivotTable from './components/PivotTable.jsx'
 import DssPanel from './components/DssPanel.jsx'
+import BacktestPanel from './components/BacktestPanel.jsx'
 import { ClimateChart, DayTypeChart, HourlyChart, UserChart, WeatherChart } from './components/Charts.jsx'
 
 // Biểu tượng đường nét (stroke) 20x20 cho menu
@@ -96,7 +97,10 @@ export default function App() {
             <ClimateChart filters={filters} />
           </>)}
           {page === 'pivot' && <PivotTable filters={filters} />}
-          {page === 'dss' && <DssPanel filters={filters} options={options} />}
+          {page === 'dss' && (<>
+            <DssPanel filters={filters} options={options} />
+            <BacktestPanel />
+          </>)}
         </div>
       </div>
     </div>

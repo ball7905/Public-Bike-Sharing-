@@ -206,6 +206,8 @@ tr.hi th { color:#dc2626; }
 .preset { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:.88rem; }
 table.matrix td { text-align:center; font-size:.78rem; padding:4px 6px; border:1px solid var(--line); }
 table.matrix th { border:1px solid var(--line); }
+.dss tr.pick { cursor:pointer; } .dss tr.pick:hover th, .dss tr.pick:hover td { background:rgba(37,99,235,.06); }
+.dss tr.sel th, .dss tr.sel td { background:rgba(37,99,235,.14); }
 
 /* ---------- Nhiệt độ / độ ẩm ---------- */
 .climate { display:grid; grid-template-columns:minmax(0,3fr) minmax(280px,2fr); gap:18px; align-items:start; }

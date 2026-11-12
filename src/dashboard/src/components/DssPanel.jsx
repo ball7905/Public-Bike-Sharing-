@@ -6,7 +6,7 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, ReferenceL
 import { fmt, get, pct } from '../api.js'
 
 export const LEVEL_COLOR = { low: '#16a34a', medium: '#f59e0b', high: '#dc2626' }
-const LEVEL_LABEL = { low: 'Thấp', medium: 'Trung bình', high: 'Cao' }
+export const LEVEL_LABEL = { low: 'Thấp', medium: 'Trung bình', high: 'Cao' }
 const DAY_GROUPS = [
   ['working', 'Ngày làm việc', 'Thứ 2 – thứ 6, không phải ngày lễ'],
   ['non_working', 'Ngày nghỉ', 'Cuối tuần hoặc ngày lễ'],

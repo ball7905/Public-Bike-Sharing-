@@ -106,3 +106,15 @@ def dss_plan(day_group: str = Query("working", pattern="^(working|non_working)$"
 @app.get("/api/dss/matrix")
 def dss_matrix(q_low: float = Q_LOW, q_high: float = Q_HIGH, f: dict = Depends(get_filters)):
     return run(DQ.matrix, f, q_low, q_high)
+
+
+# Kiểm định ngoài mẫu (backtest). DW chỉ đọc và không đổi trong lúc chạy, nên kết quả cache theo (q_low, q_high).
+_BACKTEST_CACHE: dict = {}
+
+
+@app.get("/api/dss/backtest")
+def dss_backtest(q_low: float = Q_LOW, q_high: float = Q_HIGH):
+    key = (q_low, q_high)
+    if key not in _BACKTEST_CACHE:
+        _BACKTEST_CACHE[key] = run(DQ.backtest, q_low, q_high)
+    return _BACKTEST_CACHE[key]

@@ -7,7 +7,7 @@ Bài tập lớn đã xây dựng hoàn chỉnh hệ thống \textbf{Bike Sharin
     \item \textbf{Thiết kế DW}: Star Schema độ hạt theo giờ với 3 chiều, các vấn đề thiết kế được phân tích và giải quyết có lý do; quy trình ETL làm sạch, nạp trong giao dịch và đối chiếu 13/13 tiêu chí với nguồn; các vấn đề chất lượng (giờ thiếu, độ ẩm 0\%) được đánh dấu ngay trong kho.
     \item \textbf{Hiện thực}: PostgreSQL, truy vấn OLAP đủ năm phép toán, REST API 12 endpoint phân tích, dashboard React với bộ lọc dùng chung, KPI, drill-down, pivot.
     \item \textbf{DSS}: mô hình phân loại nhu cầu ba mức với ngưỡng khảo sát từ phân phối dữ liệu, khuyến nghị, cảnh báo theo khung giờ, danh sách ưu tiên, loại hỗ trợ theo nhóm khách (đăng ký / vãng lai), lựa chọn theo nhóm ngày hoặc một / nhiều thứ trong tuần (so sánh kế hoạch từng thứ), phân tích độ nhạy và đánh giá độ tin cậy.
-    \item \textbf{Đánh giá}: 40 kiểm thử tự động đối chiếu với nguồn, thời gian phản hồi dưới 0,25 giây; hạn chế và hướng phát triển được nêu rõ.
+    \item \textbf{Đánh giá}: 67 kiểm thử tự động đối chiếu với nguồn, thời gian phản hồi dưới 0,25 giây; hạn chế và hướng phát triển được nêu rõ.
 \end{itemize}
 Kết quả phân tích cho thấy những quy luật có giá trị vận hành: hệ thống tăng trưởng 64,9\% từ 2011 sang 2012; ngày làm việc có hai khung cao điểm 7--9h và 16--20h, ngày nghỉ có một khung dài 10--19h; mưa nhẹ làm giảm gần một nửa nhu cầu nhưng nhu cầu đi làm giờ cao điểm vẫn ở mức Cao; nhiệt độ có ảnh hưởng dương rõ rệt. Các khung giờ ưu tiên mà DSS đưa ra ổn định khi thay đổi ngưỡng và kỳ lịch sử.
 

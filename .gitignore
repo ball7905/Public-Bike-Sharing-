@@ -6,7 +6,11 @@ dist/
 .pytest_cache/
 
 venv/
+<<<<<<< HEAD
 .venv/
+venv/
 env/
 .env
 .DS_Store
+=======
+>>>>>>> 81a4a81 (theme ui)

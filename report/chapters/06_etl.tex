@@ -17,8 +17,8 @@ Quy trình ETL được hiện thực bằng Python (Pandas, psycopg2) trong th�
 \node[box, right=of tr] (ld) {\textbf{Load}\\ load.py\\ COPY, 1 giao dịch};
 \node[box, right=of ld, fill=primary!12, draw=primary] (val) {\textbf{Validate}\\ validate.py\\ 13 phép đối chiếu};
 \draw[arr] (csv) -- (ext); \draw[arr] (ext) -- (tr); \draw[arr] (tr) -- (ld); \draw[arr] (ld) -- (val);
-\node[src, below=0.9cm of ld, text width=3.2cm] (dw) {\textbf{PostgreSQL}\\ schema \code{dw} + view};
-\node[src, below=0.9cm of val, text width=2.6cm] (rep) {docs/\\validation\_report.md};
+\node[src, below=0.9cm of ld] (dw) {\textbf{PostgreSQL}\\ schema \code{dw}\\ + view};
+\node[src, below=0.9cm of val] (rep) {\textbf{Báo cáo}\\ docs/validation\_\\report.md};
 \draw[arr] (ld) -- (dw); \draw[arr] (val) -- (rep);
 \end{tikzpicture}
 \caption{Luồng xử lý ETL (\code{hour.csv} được nạp; \code{day.csv} chỉ dùng ở bước đối chiếu)}

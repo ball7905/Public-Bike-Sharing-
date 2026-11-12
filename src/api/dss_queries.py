@@ -23,7 +23,8 @@ def _thresholds(cur, period, q_low, q_high):
     s = q(cur, f"""SELECT COUNT(*)::int AS n_obs, AVG(total_cnt)::float8 AS mean,
                           STDDEV_SAMP(total_cnt)::float8 AS std, MIN(total_cnt)::int AS min, MAX(total_cnt)::int AS max,
                           percentile_cont(%s::float8[]) WITHIN GROUP (ORDER BY total_cnt) AS qs,
-                          percentile_cont(%s::float8[]) WITHIN GROUP (ORDER BY total_cnt) AS th
+                          percentile_cont(%s::float8[]) WITHIN GROUP (ORDER BY total_cnt) AS th,
+                          (SUM(casual_cnt)::float8 / NULLIF(SUM(total_cnt), 0)) AS casual_share
                    FROM {V} {w}""", [qs, [q_low, q_high], *a])[0]
     if not s["n_obs"]:
         raise ValueError("Không có dữ liệu lịch sử trong khoảng thời gian đã chọn")
@@ -45,25 +46,32 @@ def thresholds(cur, filters, q_low=E.DEFAULT_Q_LOW, q_high=E.DEFAULT_Q_HIGH):
                          "percentiles": [{"q": x, "value": v} for x, v in zip(E.SURVEY_QUANTILES, s["qs"])]},
         "thresholds": th,
         "observation_share": share,            # tỷ lệ giờ quan sát rơi vào từng mức
+        "casual_share": s["casual_share"],     # tỷ lệ khách vãng lai chung của kỳ (mốc phân nhóm khách)
         "min_obs": E.MIN_OBS,
         "levels": [{"level": lv, "label": E.LEVEL_LABELS[lv], "recommendation": E.RECOMMENDATIONS[lv]} for lv in E.LEVELS],
     }
 
 
-def plan(cur, filters, day_group, weather, q_low=E.DEFAULT_Q_LOW, q_high=E.DEFAULT_Q_HIGH):
-    """Kế hoạch chuẩn bị 24 giờ cho tình huống sắp tới: loại ngày + thời tiết dự kiến."""
+def plan(cur, filters, day_group, weather, q_low=E.DEFAULT_Q_LOW, q_high=E.DEFAULT_Q_HIGH, day_of_week=None):
+    """Kế hoạch chuẩn bị 24 giờ cho tình huống sắp tới: loại ngày (hoặc một / nhiều thứ cụ thể) + thời tiết dự kiến.
+    day_of_week: một thứ hoặc danh sách thứ (0 = Chủ nhật ... 6 = Thứ bảy, như nguồn); lấy các ngày thuộc các thứ đó,
+    KHÔNG phải ngày lễ (ngày lễ dùng nhóm 'ngày nghỉ'); khi có thì thay cho day_group."""
     if day_group not in E.DAY_GROUPS:
         raise ValueError("day_group phải là working hoặc non_working")
+    day_of_week = E.normalize_weekdays(day_of_week)
     weathers = {w["key"]: w for w in _weathers(cur)}
     if weather not in weathers:
         raise ValueError(f"weather phải thuộc {sorted(weathers)}")
     period = period_only(filters)
     s, th = _thresholds(cur, period, q_low, q_high)
-    w, a = where(period, [("is_working_day", day_group == "working"), ("weather_key", weather)])
+    day_cond = ([("weekday", day_of_week), ("is_holiday", False)] if day_of_week is not None
+                else [("is_working_day", day_group == "working")])
+    w, a = where(period, [*day_cond, ("weather_key", weather)])
     rows = q(cur, f"""SELECT hour, COUNT(*)::int AS n_obs, AVG(total_cnt)::float8 AS avg_rentals,
                              AVG(casual_cnt)::float8 AS avg_casual, AVG(registered_cnt)::float8 AS avg_registered
                       FROM {V} {w} GROUP BY hour ORDER BY hour""", a)
-    out = E.build_plan(rows, th, s["mean"], day_group, weathers[weather])
+    out = E.build_plan(rows, th, s["mean"], day_group, weathers[weather], casual_ref=s["casual_share"],
+                       day_of_week=day_of_week)
     out["period"] = period
     return out
 

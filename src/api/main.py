@@ -104,8 +104,11 @@ def dss_thresholds(q_low: float = Q_LOW, q_high: float = Q_HIGH, f: dict = Depen
 
 @app.get("/api/dss/plan")
 def dss_plan(day_group: str = Query("working", pattern="^(working|non_working)$"), weather: int = 1,
+             day_of_week: Optional[str] = Query(None, pattern="^[0-6](,[0-6])*$",
+                                                description="Một hoặc nhiều thứ, vd. 1 hoặc 1,2 (0 = Chủ nhật ... 6 = Thứ bảy); ưu tiên hơn day_group"),
              q_low: float = Q_LOW, q_high: float = Q_HIGH, f: dict = Depends(get_filters)):
-    return run(DQ.plan, f, day_group, weather, q_low, q_high)
+    dows = sorted({int(x) for x in day_of_week.split(",")}) if day_of_week else None
+    return run(DQ.plan, f, day_group, weather, q_low, q_high, dows)
 
 
 @app.get("/api/dss/matrix")

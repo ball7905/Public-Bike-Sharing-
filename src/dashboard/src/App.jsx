@@ -98,7 +98,7 @@ export default function App() {
           </>)}
           {page === 'pivot' && <PivotTable filters={filters} />}
           {page === 'dss' && (<>
-            <DssPanel filters={filters} />
+            <DssPanel filters={filters} options={options} />
             <BacktestPanel />
           </>)}
         </div>

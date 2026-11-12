@@ -1,0 +1,21 @@
+# Render Blueprint: tạo PostgreSQL + web service (Docker) từ repo này.
+# Tùy chọn (đặt trong Dashboard của service nếu cần):
+#   RUN_ETL=always   -> chạy lại ETL mỗi lần khởi động (mặc định chỉ chạy khi kho trống)
+#   CORS_ORIGINS=... -> thêm origin được phép gọi API, cách nhau bằng dấu phẩy
+databases:
+  - name: bike-dw-db
+    databaseName: bike_dw
+    user: bike
+    plan: free
+services:
+  - type: web
+    name: bike-sharing-dss
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bike-dw-db
+          property: connectionString

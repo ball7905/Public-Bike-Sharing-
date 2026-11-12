@@ -1,15 +1,23 @@
 """API cho Dashboard.  Chạy: uvicorn --app-dir src api.main:app --port 8000"""
+import os
+from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from api import dss_queries as DQ
 from api import queries as Q
 from api.db import cursor
 
+ROOT = Path(__file__).resolve().parents[2]
+# CORS_ORIGINS (tùy chọn): danh sách origin cách nhau bởi dấu phẩy, thêm vào các origin localhost.
+_EXTRA_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+
 app = FastAPI(title="Bike Sharing DW API")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+app.add_middleware(CORSMiddleware,
+                   allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", *_EXTRA_ORIGINS],
                    allow_methods=["GET"], allow_headers=["*"])
 
 
@@ -115,3 +123,10 @@ def dss_backtest(q_low: float = Q_LOW, q_high: float = Q_HIGH):
     if key not in _BACKTEST_CACHE:
         _BACKTEST_CACHE[key] = run(DQ.backtest, q_low, q_high)
     return _BACKTEST_CACHE[key]
+
+
+# ---- Phục vụ dashboard đã build (Docker/Render). Mount sau cùng để các route /api ưu tiên hơn.
+# STATIC_DIR (tùy chọn) ghi đè đường dẫn mặc định src/dashboard/dist.
+_DASHBOARD_DIST = Path(os.getenv("STATIC_DIR", ROOT / "src" / "dashboard" / "dist"))
+if _DASHBOARD_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=_DASHBOARD_DIST, html=True), name="dashboard")

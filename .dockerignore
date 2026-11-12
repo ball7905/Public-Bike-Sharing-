@@ -1,0 +1,13 @@
+.git
+.venv
+venv
+env
+**/node_modules
+src/dashboard/dist
+report
+tests
+.pytest_cache
+**/__pycache__
+.env
+*.zip
+.DS_Store

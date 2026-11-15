@@ -33,3 +33,19 @@ pip install -r requirements-dev.txt
 python -m pytest tests -q                  # can DB da nap ETL
 python report/scripts/make_figures.py      # sinh report/figures/*.pdf
 \end{lstlisting}
+
+\sect{Chạy bằng Docker}\label{sec:deploy}
+Repo có \code{Dockerfile} build theo hai giai đoạn: giai đoạn đầu dùng Node.js để build dashboard; giai đoạn sau là image Python chứa API, ETL, mô hình DSS và dashboard đã build, chạy bằng người dùng không phải \code{root}. Khi khởi động, \code{scripts/start.sh} chờ CSDL sẵn sàng (tối đa 30 lần, mỗi lần 2 giây, kiểm tra bằng \code{scripts/db\_ready.py}), tự chạy ETL nếu kho còn trống (hoặc luôn chạy khi đặt \code{RUN\_ETL=always}), rồi khởi động API. API phục vụ luôn dashboard ở đường dẫn gốc, nên chỉ cần một cổng. Kết nối CSDL lấy từ biến \code{DATABASE\_URL}; nếu không đặt thì dùng các biến \code{PG*} như khi chạy thường.
+
+\begin{lstlisting}[language=bash, caption={Chạy hệ thống bằng Docker (PostgreSQL và ứng dụng là hai container)}]
+docker network create bike-net
+docker run -d --name bike-db --network bike-net \
+  -e POSTGRES_PASSWORD=bike123 -e POSTGRES_DB=bike_dw postgres:16
+docker build -t bike-dss .
+docker run --rm -p 8000:8000 --network bike-net \
+  -e DATABASE_URL=postgresql://postgres:bike123@bike-db:5432/bike_dw bike-dss
+# mo http://localhost:8000
+\end{lstlisting}
+
+\sect{Triển khai lên Render}
+Tệp \code{render.yaml} là một Blueprint của Render: tạo một CSDL PostgreSQL \code{bike\_dw} và một web service chạy từ \code{Dockerfile}, tự gán \code{DATABASE\_URL} của CSDL cho dịch vụ. Lần khởi động đầu, kho còn trống nên container tự chạy ETL. Render dùng endpoint \code{/api/health} để kiểm tra dịch vụ còn hoạt động. Có thể tạo thủ công thay cho Blueprint (tạo CSDL, tạo web service kiểu Docker, đặt \code{DATABASE\_URL} là Internal Database URL), và thêm \code{CORS\_ORIGINS} nếu dashboard chạy ở tên miền khác. Với gói miễn phí, dịch vụ ngủ khi không có truy cập nên lần gọi đầu mất khoảng 30--60 giây, và CSDL miễn phí có thời hạn sử dụng.

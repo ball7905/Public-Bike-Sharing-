@@ -41,6 +41,7 @@ API & FastAPI~\cite{fastapi}, Uvicorn & Kiểm tra tham số tự động, tài 
 DSS & Python thuần (\code{src/dss}) & Tách khỏi CSDL để kiểm thử độc lập \\ \hline
 Frontend & React 18~\cite{react}, Vite, Recharts~\cite{recharts} & Thành phần hóa giao diện, biểu đồ khai báo \\ \hline
 Kiểm thử & pytest, FastAPI TestClient & Kiểm thử tự động API, OLAP, DSS \\ \hline
+Đóng gói, triển khai & Docker, Render & Một image chứa API, dashboard đã build và ETL; Blueprint tạo sẵn PostgreSQL và web service \\ \hline
 \end{tabularx}
 \end{table}
 
@@ -54,10 +55,16 @@ bike-dw/
 |   |-- etl/         config, extract, transform, load, validate, run_etl
 |   |-- api/         main.py (endpoints), queries.py (OLAP/KPI),
 |   |                dss_queries.py (truy xuat cho DSS), db.py
-|   |-- dss/         engine.py (mo hinh DSS, khong phu thuoc CSDL)
+|   |-- dss/         engine.py (mo hinh DSS, khong phu thuoc CSDL),
+|   |                backtest.py (kiem dinh ngoai mau)
 |   `-- dashboard/   React: App.jsx, components/ (FilterBar, KpiCards,
-|                    DrillChart, Charts, PivotTable, DssPanel)
-|-- tests/           test_api, test_climate, test_dss_engine, test_dss_api
+|                    DrillChart, Charts, PivotTable, DssPanel,
+|                    BacktestPanel, chartTheme)
+|-- tests/           test_etl, test_api, test_climate, test_dss_engine,
+|                    test_dss_api, test_dss_backtest
+|-- scripts/         start.sh, db_ready.py (khoi dong container)
+|-- Dockerfile       build dashboard + dong goi API, ETL, DSS
+|-- render.yaml      Blueprint trien khai len Render
 |-- docs/            validation_report.md
 `-- report/          bao cao LaTeX
 \end{lstlisting}
